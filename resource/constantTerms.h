@@ -130,7 +130,7 @@
 // LOGIN WELCOME
 #define CUSTOMER_LOGIN_WELCOME "Welcome dear customer! Enter your credentials to gain access to your account!"
 #define CUSTOMER_LOGIN_SUCCESS "Welcome beloved customer!"
-
+#define CUSTOMER_ALREADY_LOGGED_IN "You are already Logged-In \nPlease Try again after some time"
 #define CUSTOMER_LOGOUT "Logging you out now dear customer! Good bye!$"
 
 // ADMIN MENU

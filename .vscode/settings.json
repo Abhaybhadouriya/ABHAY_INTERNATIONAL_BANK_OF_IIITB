@@ -1,5 +1,10 @@
 {
     "files.associations": {
-        "employee.h": "c"
+        "employee.h": "c",
+        "constantterms.h": "c",
+        "stdbool.h": "c",
+        "commanfun.h": "c",
+        "ipc.h": "c",
+        "set.h": "c"
     }
 }

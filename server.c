@@ -1,46 +1,51 @@
-#include <stdio.h> // Import for `printf` & `perror` functions
-#include <errno.h> // Import for `errno` variable
+#include <stdio.h> 
+#include <errno.h> 
 
-#include <fcntl.h>      // Import for `fcntl` functions
-#include <unistd.h>     // Import for `fork`, `fcntl`, `read`, `write`, `lseek, `_exit` functions
-#include <sys/types.h>  // Import for `socket`, `bind`, `listen`, `accept`, `fork`, `lseek` functions
-#include <sys/socket.h> // Import for `socket`, `bind`, `listen`, `accept` functions
-#include <netinet/ip.h> // Import for `sockaddr_in` stucture
+#include <fcntl.h>      
+#include <unistd.h>     
+#include <sys/types.h>  
+#include <sys/socket.h> 
+#include <netinet/ip.h> 
 
-#include <string.h>  // Import for string functions
-#include <stdbool.h> // Import for `bool` data type
-#include <stdlib.h>  // Import for `atoi` function
-#include <sys/shm.h>  // For shared memory
-#include "./resource/constantTerms.h"
+#include <string.h>  
+#include <stdbool.h> 
+#include <stdlib.h> 
+#include <sys/shm.h>  
+//================================ RESOURCES ================================
+#include "./resource/set.h"
+#include "./resource/shFile.h"
 #include "./resource/commanFun.h"
+#include "./resource/constantTerms.h"
+//================================ STRUCT__FUN ================================
+#include "./recordStruct/employee.h"
 #include "./recordStruct/account.h"
 #include "./recordStruct/loanapply.h"
 #include "./recordStruct/structs.h"
 #include "./recordStruct/transection.h"
+//================================ ADMIN    ==================================
 #include "./admin/admin.h"
+//================================ CUSTOMER ==================================
 #include "./customer/customer.h"
+//================================ EMPLOYEE ==================================
 #include "./employee/employee.h"
+//================================ MANAGER  ==================================
 #include "./manager/manager.h"
-#include "./recordStruct/employee.h"
 
 void connection_handler(int connFD); // Handles the communication with the client
-int *total_clients;  // Shared memory for total client count
+// int *total_clients;  
 void main()
 {
     int socketFileDescriptor, socketBindStatus, socketListenStatus, connectionFileDescriptor;
     struct sockaddr_in serverAddress, clientAddress;
+//  ======================   SHARED MEMORY INITIATIONS START ======================
+    
+     // Initialize total clients count
+    init_shared_memory_total_client();
 
-  int shmid;
-    key_t key = 1234;  // Shared memory key
-
-    // Create shared memory for total client count
-    if ((shmid = shmget(key, sizeof(int), 0666 | IPC_CREAT)) < 0) {
-        perror("shmget");
-        exit(EXIT_FAILURE);
-    }
-
-    total_clients = (int *)shmat(shmid, NULL, 0);
-    *total_clients = 0;  // Initialize total clients count
+    // INITIALIZE CURRENT LOGGED IN CLIENT
+    // Create shared memory for the set
+    init_shared_memorySession_management();
+//  ======================   SHARED MEMORY INITIATIONS END   ======================
 
 
     socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -94,7 +99,7 @@ write(STDOUT_FILENO, message, strlen(message));
             }
         }
     }
-
+    detach_shared_memory();
     close(socketFileDescriptor);
 }
 
@@ -130,7 +135,7 @@ void connection_handler(int connectionFileDescriptor)
                 break;
             case 2:
                 // Customer
-                // customer_operation_handler(connectionFileDescriptor);
+                customerDriver(connectionFileDescriptor);
                 break;
              case 3:
                 // Customer

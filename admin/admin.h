@@ -4,6 +4,8 @@
 #include "../resource/constantTerms.h"
 #include "../recordStruct/structs.h"
 #include "../resource/commanFun.h"
+#include "../resource/set.h"
+#include "../resource/shFile.h"
 #include <sys/stat.h>  // For file mode constants like S_IRWXU
 #include <crypt.h>
 #include <stdbool.h>

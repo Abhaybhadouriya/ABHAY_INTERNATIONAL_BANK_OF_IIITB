@@ -15,6 +15,8 @@
 // #include  "../database/account.abhay.bank"
 // #include "../database/loan.abhay.bank"
 // #include "../database/transactions.abhay.bank"
+#include "./set.h"
+#include "./shFile.h"
 #include "../admin/admin_cred.h"
 #include "./constantTerms.h"
 #include "../recordStruct/account.h"
@@ -78,9 +80,9 @@ bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID)
     {
         bzero(tempBuffer, sizeof(tempBuffer));
         strcpy(tempBuffer, readBuffer);
-        strtok(tempBuffer, "-");
-        ID = atoi(strtok(NULL, "-"));
-
+        // strtok(tempBuffer, "-");
+        // ID = atoi(strtok(NULL, "-"));
+        ID  =  get_last_number_of_loginID(tempBuffer);
         int customerFileFD = open(ACCOUNT_FILE, O_RDONLY);
         if (customerFileFD == -1)
         {
@@ -111,11 +113,17 @@ bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID)
             fcntl(customerFileFD, F_SETLK, &lock);
             char accountNumberStr[100];
             // Buffer to hold the string representation of the account number
-            snprintf(accountNumberStr, sizeof(accountNumberStr), "%d", account.accountNumber); 
+            snprintf(accountNumberStr, sizeof(accountNumberStr), "%s", account.login); 
             // Convert int to string
             if (strcmp(accountNumberStr, readBuffer) == 0)
                 userFound = true;
-
+            
+                else{
+                 writeBytes = write(connFD, INVALID_LOGIN, strlen(INVALID_LOGIN));
+                     close(customerFileFD);
+                return false;
+            }
+              
             close(customerFileFD);
         }
         else
@@ -144,7 +152,6 @@ bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID)
 
         char hashedPassword[1000];
         strcpy(hashedPassword, crypt(readBuffer, SALT_BAE));
-
         if (isAdmin)
         {
             if (strcmp(hashedPassword, ADMIN_PASS_WORD) == 0)
@@ -154,8 +161,15 @@ bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID)
         {
             if (strcmp(hashedPassword, account.password) == 0)
             {
-                *ptrToCustomerID = account;
-                return true;
+
+               if(!add_to_shared_set(account.login))
+               {
+                bzero(writeBuffer, sizeof(writeBuffer));
+                writeBytes = write(connFD,CUSTOMER_ALREADY_LOGGED_IN, strlen(CUSTOMER_ALREADY_LOGGED_IN));
+                return false;
+               }
+               else 
+               return true;
             }
         }
 
