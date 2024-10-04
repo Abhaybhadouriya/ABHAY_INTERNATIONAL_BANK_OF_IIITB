@@ -28,11 +28,157 @@ bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer);
 bool get_account_details(int connFD, struct Account *customerAccount);
 bool get_customer_details(int connFD, int customerID);
 bool get_transaction_details(int connFD, int accountNumber);
+char* getRole(int role);
 int get_last_number_of_loginID(char *input);
+bool view_employee_account(int connFD,int role,int range,char *str);
 // =====================================================
 
 // Function Definition =================================
 
+
+
+
+bool view_employee_account(int connFD,int role,int range,char *str){
+     ssize_t readBytes, writeBytes;             // Number of bytes read from / written to the socket
+    char readBuffer[1000], writeBuffer[10000]; // A buffer for reading from / writing to the socket
+    char tempBuffer[1000];
+    char tempCustID[1000];
+    int employeeID;
+    struct Employee account;
+    int customerFileDescriptor;
+     
+    struct flock lock = {F_RDLCK, SEEK_SET, 0, range==-1?0:sizeof(struct Employee), getpid()};
+    int toSeek=0;
+    
+    // if requested by employee
+    if (range != -1)
+    {       
+       toSeek = get_last_number_of_loginID(str);
+        employeeID = atoi(readBuffer);
+    }
+    customerFileDescriptor = open(EMPLOYEE_FILE, O_RDONLY);
+    if (customerFileDescriptor == -1)
+    {
+        // Customer File doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "No Employee");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing EMPLOYEE_ID_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    off_t fileSize = lseek(customerFileDescriptor, 0, SEEK_END);
+
+    if(range!=-1&&fileSize<=toSeek*sizeof(struct Employee)){
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "NO Employee");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing EMPLOYEE_ID_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return true;
+    }
+    int offset = lseek(customerFileDescriptor, (range==-1?0:toSeek) * sizeof(struct Employee), SEEK_SET);
+    write(connFD, writeBuffer, strlen(writeBuffer));
+    if (errno == EINVAL)
+    {
+        // Customer record doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "NO Employee");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing EMPLOYEE_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    else if (offset == -1)
+    {
+        perror("Error while seeking to required Employee record!");
+        return false;
+    }
+    lock.l_start = offset;
+
+    int lockingStatus = fcntl(customerFileDescriptor, F_SETLKW, &lock);
+    if (lockingStatus == -1)
+    {
+        perror("Error while obtaining read lock on the Customer file!");
+        return false;
+    }
+    char printstr[10000];
+    if(range!=-1){
+    readBytes = read(customerFileDescriptor, &account, sizeof(struct Employee));
+    
+    if (readBytes == -1)
+    {
+        perror("Error reading customer record from file!");
+        return false;
+    }
+    }else{
+        struct  Employee employee;
+       off_t offset = lseek(customerFileDescriptor, 0, SEEK_END); // Get the total size of the file
+
+lseek(customerFileDescriptor, 0, SEEK_SET); // Reset file pointer to the start of the file
+    bzero(writeBuffer, sizeof(writeBuffer));
+
+for (off_t i = 0; i < offset; i += sizeof(struct Employee)) {
+  
+    ssize_t readBytes = read(customerFileDescriptor, &employee, sizeof(struct Employee));
+
+    if (readBytes == sizeof(struct Employee)) {
+        if((int)employee.role==role){
+        sprintf(writeBuffer, "Empsloyee Details - \n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tRole : %s\n\n", employee.empID, employee.name, employee.gender, employee.age,employee.login,getRole(employee.role));
+    //    *printstr+=writeBuffer;
+        strcat(printstr, writeBuffer);}
+    } else if (readBytes == 0) {
+        break;
+    } else {
+        break;
+    }
+}
+
+    }
+    lock.l_type = F_UNLCK;
+    fcntl(customerFileDescriptor, F_SETLK, &lock);
+    if(range !=-1){
+    bzero(writeBuffer, sizeof(writeBuffer));
+      if (strcmp(tempCustID, account.login) != 0){
+        strcpy(writeBuffer, CUSTOMER_ID_DOESNT_EXIT);
+        strcat(writeBuffer, "^");
+     
+      }else{
+    
+    sprintf(writeBuffer, "Empsloyee Details - \n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s", account.empID, account.name, account.gender, account.age,account.login);
+      }
+    strcat(writeBuffer, "\n\nYou'll now be redirected to the main menu...^");
+
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+    }else {
+    writeBytes = write(connFD,printstr, strlen(printstr));
+    }
+    if (writeBytes == -1)
+    {
+        perror("Error writing Employee info to client!");
+        return false;
+    }
+    bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
+
+    // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+    return true;
+};
 bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID)
 {
     ssize_t readBytes, writeBytes;            // Number of bytes written to / read from the socket
@@ -318,7 +464,10 @@ bool get_customer_details(int connFD, int customerID)
     return true;
 }
 
-
+char* getRole(int role){
+    if(role==0) return "Manager";
+    return "Employee";
+}
 int get_last_number_of_loginID(char *input){
     char *token;
     token = strtok(input, "-");

@@ -40,7 +40,7 @@
 #define ADMIN_LOGIN_SUCCESS "Welcome back The Great Great Abhay Bhadouriya!"
 
 // ADMIN MENU
-#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee \n5. Add Employee\n6. Remove Employee\n7. View Managers List\n8. Remove Manager\n9. View Add Remove\n10. Change Roles\nPress any other key to logout"
+#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee \n5. Add Employee\n6. Remove Employee\n7. View Managers List\n8. Remove Manager\n9. Change Roles\nPress any other key to logout"
 
 // ADD CUSTOMER
 #define ADMIN_ADD_CUSTOMER_NAME "What is the customer's name?"
