@@ -31,6 +31,7 @@ bool get_transaction_details(int connFD, int accountNumber);
 char* getRole(int role);
 int get_last_number_of_loginID(char *input);
 bool view_employee_account(int connFD,int role,int range,char *str);
+bool updateDetails(int connFD,bool isAdmin);
 // =====================================================
 
 // Function Definition =================================
@@ -461,6 +462,312 @@ bool get_customer_details(int connFD, int customerID)
     }
 
     readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+    return true;
+}
+
+
+bool updateDetails(int connFD,bool isAdmin)
+{
+    ssize_t readBytes, writeBytes;
+    char readBuffer[1000], writeBuffer[1000];
+    char *FILE_TO_FETCH;
+    struct Account account;
+    struct Employee employee;
+    int role;
+    int customerID;
+    char targetCusID[100];
+    if(isAdmin){
+        writeBytes = write(connFD, ADMIN_MODIFY_PROMPT, strlen(ADMIN_MODIFY_PROMPT));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_MODIFY_PROMT message to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while getting TYPE from client!");
+            return false;
+        }
+
+
+        role = atoi(readBuffer);
+         writeBytes = write(connFD, ADMIN_GET_UNIQUE_ID, strlen(ADMIN_GET_UNIQUE_ID));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_GET_UNIQUE_ID to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while reading UNIQUE ID from client!");
+            return false;
+        }
+        strcpy(targetCusID, readBuffer);
+        customerID=get_last_number_of_loginID(readBuffer);
+
+
+    }
+
+
+    off_t offset;
+    int lockingStatus;
+
+    int customerFileDescriptor = open(role==1?ACCOUNT_FILE:EMPLOYEE_FILE, O_RDONLY);
+    if (customerFileDescriptor == -1)
+    {
+        // Customer File doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, CUSTOMER_ID_DOESNT_EXIT);
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing CUSTOMER_ID_DOESNT_EXIT message to client!");
+            return false;
+        }
+        // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    
+    offset = role==1?lseek(customerFileDescriptor, customerID * sizeof(struct Employee), SEEK_SET):lseek(customerFileDescriptor, customerID * sizeof(struct Employee), SEEK_SET);
+    if (errno == EINVAL)
+    {
+        // Customer record doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, CUSTOMER_ID_DOESNT_EXIT);
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing CUSTOMER_ID_DOESNT_EXIT message to client!");
+            return false;
+        }
+        // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    else if (offset == -1)
+    {
+        perror("Error while seeking to required customer record!");
+        return false;
+    }
+
+    struct flock lock = {F_RDLCK, SEEK_SET, offset, role==1?sizeof(struct Account):sizeof(struct Employee), getpid()};
+    lockingStatus = fcntl(customerFileDescriptor, F_SETLKW, &lock);
+    if (lockingStatus == -1)
+    {
+        perror("Couldn't obtain lock on customer record!");
+        return false;
+    }
+    
+    readBytes = role==1?read(customerFileDescriptor, &account, sizeof(struct Account)):read(customerFileDescriptor, &employee, sizeof(struct Employee));
+    
+    if (readBytes == -1)
+    {
+        perror("Error while reading customer record from the file!");
+        return false;
+    }
+
+    // Unlock the record
+    lock.l_type = F_UNLCK;
+    fcntl(customerFileDescriptor, F_SETLK, &lock);
+
+    close(customerFileDescriptor);
+
+    writeBytes = write(connFD, role==1?ADMIN_MOD_CUSTOMER_MENU:ADMIN_MOD_EMPLOYEE_MENU, strlen(role==1?ADMIN_MOD_CUSTOMER_MENU:ADMIN_MOD_EMPLOYEE_MENU));
+    if (writeBytes == -1)
+    {
+        perror("Error while writing ADMIN_MOD_CUSTOMER_MENU message to client!");
+        return false;
+    }
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1)
+    {
+        perror("Error while getting customer modification menu choice from client!");
+        return false;
+    }
+
+    int choice = atoi(readBuffer);
+    if (choice == 0)
+    { // A non-numeric string was passed to atoi
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, ERRON_INPUT_FOR_NUMBER);
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ERRON_INPUT_FOR_NUMBER message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+
+    bzero(readBuffer, sizeof(readBuffer));
+    switch (choice)
+    {
+    case 1:
+        writeBytes = write(connFD, ADMIN_MOD_CUSTOMER_NEW_NAME, strlen(ADMIN_MOD_CUSTOMER_NEW_NAME));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_MOD_CUSTOMER_NEW_NAME message to client!");
+            return false;
+        }
+      
+        readBytes = read(connFD, &readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while getting response for customer's new name from client!");
+            return false;
+        }
+        if(role==1){
+        strcpy(account.name, readBuffer);
+        }else{
+        strcpy(employee.name ,readBuffer);
+        }
+        break;
+    case 2:
+        writeBytes = write(connFD, ADMIN_MOD_CUSTOMER_NEW_AGE, strlen(ADMIN_MOD_CUSTOMER_NEW_AGE));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_MOD_CUSTOMER_NEW_AGE message to client!");
+            return false;
+        }
+        readBytes = read(connFD, &readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while getting response for customer's new age from client!");
+            return false;
+        }
+        int updatedAge = atoi(readBuffer);
+        if (updatedAge == 0)
+        {
+            // Either client has sent age as 0 (which is invalid) or has entered a non-numeric string
+            bzero(writeBuffer, sizeof(writeBuffer));
+            strcpy(writeBuffer, ERRON_INPUT_FOR_NUMBER);
+            writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+            if (writeBytes == -1)
+            {
+                perror("Error while writing ERRON_INPUT_FOR_NUMBER message to client!");
+                return false;
+            }
+            readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+            return false;
+        }
+        if(role==1){
+        account.age= updatedAge;
+        }else{
+        employee.age =updatedAge;
+        }
+        break;
+    case 3:
+        writeBytes = write(connFD, ADMIN_MOD_CUSTOMER_NEW_GENDER, strlen(ADMIN_MOD_CUSTOMER_NEW_GENDER));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_MOD_CUSTOMER_NEW_GENDER message to client!");
+            return false;
+        }
+        
+        readBytes = read(connFD, &readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while getting response for customer's new gender from client!");
+            return false;
+        }
+        if(role==1){
+        account.gender=readBuffer[0];
+        }else{
+        employee.gender=readBuffer[0];
+        }
+        
+        break;
+    case 4:
+        writeBytes = write(connFD, ADMIN_ADD__EMPLOYEE_ROLE, strlen(ADMIN_ADD__EMPLOYEE_ROLE));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_MOD_CUSTOMER_NEW_GENDER message to client!");
+            return false;
+        }
+        
+        readBytes = read(connFD, &readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while getting response for customer's new gender from client!");
+            return false;
+        }
+         int updatedRole = atoi(readBuffer);
+        if (updatedRole == 0)
+        {
+            // Either client has sent age as 0 (which is invalid) or has entered a non-numeric string
+            bzero(writeBuffer, sizeof(writeBuffer));
+            strcpy(writeBuffer, "InValid Role");
+            writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+            if (writeBytes == -1)
+            {
+                perror("Error while writing ERRON_INPUT_FOR_NUMBER message to client!");
+                return false;
+            }
+            readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+            return false;
+        }
+        employee.role =updatedRole-1;
+        break;
+    default:
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, INVALID_MENU_CHOICE);
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing INVALID_MENU_CHOICE message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+
+    customerFileDescriptor = open(role==1?ACCOUNT_FILE:EMPLOYEE_FILE, O_WRONLY);
+    if (customerFileDescriptor == -1)
+    {
+        perror("Error while opening customer file");
+        return false;
+    }
+    offset = lseek(customerFileDescriptor, customerID*(role==1?sizeof(struct Account):sizeof(struct Employee)), SEEK_SET);
+    if (offset == -1)
+    {
+        perror("Error while seeking to required customer record!");
+        return false;
+    }
+
+    lock.l_type = F_WRLCK;
+    lock.l_start = offset;
+    lockingStatus = fcntl(customerFileDescriptor, F_SETLKW, &lock);
+    if (lockingStatus == -1)
+    {
+        perror("Error while obtaining write lock on customer record!");
+        return false;
+    }
+
+    writeBytes = role==1?write(customerFileDescriptor,  &account, sizeof(struct Account)):write(customerFileDescriptor, &employee, sizeof(struct Employee));
+    if (writeBytes == -1)
+    {
+        perror("Error while writing update customer info into file");
+    }
+
+    lock.l_type = F_UNLCK;
+    fcntl(customerFileDescriptor, F_SETLKW, &lock);
+
+    close(customerFileDescriptor);
+
+    writeBytes = write(connFD, ADMIN_MOD_CUSTOMER_SUCCESS, strlen(ADMIN_MOD_CUSTOMER_SUCCESS));
+    if (writeBytes == -1)
+    {
+        perror("Error while writing ADMIN_MOD_CUSTOMER_SUCCESS message to client!");
+        return false;
+    }
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
     return true;
 }
 

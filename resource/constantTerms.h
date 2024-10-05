@@ -40,7 +40,7 @@
 #define ADMIN_LOGIN_SUCCESS "Welcome back The Great Great Abhay Bhadouriya!"
 
 // ADMIN MENU
-#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee \n5. Add Employee\n6. Remove Employee\n7. View Managers List\n8. Remove Manager\n9. Change Roles\nPress any other key to logout"
+#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee \n5. Add Employee\n6. Remove Employee\n7. View Managers List\n8. Remove Manager\nPress any other key to logout"
 
 // ADD CUSTOMER
 #define ADMIN_ADD_CUSTOMER_NAME "What is the customer's name?"
@@ -75,9 +75,14 @@
 #define ADMIN_DEL_MANAGER_NO "What is the Manager ID of Manager you want to remove?"
 #define ADMIN_DEL_MANAGER_SUCCESS "This Manager has been successfully removed\nNow he/she not able to access his/her account\nRedirecting you to the main menu ...^"
 
+
+#define ADMIN_MODIFY_PROMPT "Please select whose details you want to update?\n\t1. Customer\n\t2. Employee/Manager"
+#define ADMIN_GET_UNIQUE_ID "Enter Unique ID of USER"
 // MODIFY CUSTOMER INFO
 #define ADMIN_MOD_CUSTOMER_ID "Enter the ID of the customer who's information you want to edit"
-#define ADMIN_MOD_CUSTOMER_MENU "Which information would you like to modify?\n1. Name 2. Age 3. Gender \nPress any other key to cancel"
+#define ADMIN_MOD_EMPLOYEE_MENU "Which information would you like to modify?\n\t1. Name\n\t 2. Age\n\t 3. Gender\n\t 4. Role \nPress any other key to cancel"
+#define ADMIN_MOD_CUSTOMER_MENU "Which information would you like to modify?\n\t1. Name\n\t 2. Age\n\t 3. Gender\nPress any other key to cancel"
+
 #define ADMIN_MOD_CUSTOMER_NEW_NAME "What's the updated value for name?"
 #define ADMIN_MOD_CUSTOMER_NEW_GENDER "What's the updated value for gender?"
 #define ADMIN_MOD_CUSTOMER_NEW_AGE "What's the updated value for age?"
@@ -88,7 +93,7 @@
 
 // MODIFY EMPLOYEE INFO
 #define ADMIN_MOD_EMPLOYEE_ID "Enter the ID of the customer who's information you want to edit"
-#define ADMIN_MOD_EMPLOYEE_MENU "Which information would you like to modify?\n1. Name 2. Age 3. Gender \nPress any other key to cancel"
+// #define ADMIN_MOD_EMPLOYEE_MENU "Which information would you like to modify?\n1. Name 2. Age 3. Gender 4. Role \nPress any other key to cancel"
 #define ADMIN_MOD_EMPLOYEE_NEW_NAME "What's the updated value for name?"
 #define ADMIN_MOD_EMPLOYEE_NEW_GENDER "What's the updated value for gender?"
 #define ADMIN_MOD_EMPLOYEE_NEW_AGE "What's the updated value for age?"

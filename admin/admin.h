@@ -64,7 +64,7 @@ bool admin_operation_handler(int connFD)
                 add_customer(connFD);
                 break;
             case 3: 
-                // get_transaction_details(connFD, -1);
+                updateDetails(connFD, true);
                 break;
             case 4:
                 view_employee_account(connFD,1,-1,"");
