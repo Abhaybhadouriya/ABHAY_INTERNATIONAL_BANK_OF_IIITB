@@ -4,6 +4,8 @@
 #include "../resource/constantTerms.h"
 #include "../recordStruct/structs.h"
 #include "../resource/commanFun.h"
+#include "../recordStruct/client_data.h"
+
 #include <sys/stat.h>  // For file mode constants like S_IRWXU
 #include <crypt.h>
 #include <stdbool.h>
@@ -11,11 +13,12 @@
 
 bool customerDriver(int connFD);
 
-
+void get_customer_NAME(int connFD,struct clientData clientData);
 bool customerDriver(int connFD)
 {
 
-    if (login_handler(false, connFD, NULL))
+    struct clientData clientData;
+    if (login_handler(false, connFD, NULL, &clientData))
     {
         ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
         char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading & writing to the client
@@ -44,7 +47,7 @@ bool customerDriver(int connFD)
             switch (choice)
             {
             case 1:
-                // get_customer_details(connFD, -1);
+                get_customer_NAME(connFD, clientData);
                 break;
             default:
                 // writeBytes = write(connFD, ADMIN_LOGOUT, strlen(ADMIN_LOGOUT));
@@ -54,9 +57,13 @@ bool customerDriver(int connFD)
     }
     else
     {
-        // ADMIN LOGIN FAILED
         return false;
     }
     return true;
+}
+
+void get_customer_NAME(int connFD,struct clientData clientData){
+    printf("RRRRR %s",clientData.name);
+    write(connFD,clientData.username,strlen((clientData.username)));
 }
 #endif

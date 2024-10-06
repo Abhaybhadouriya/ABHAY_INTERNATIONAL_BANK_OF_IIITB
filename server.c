@@ -22,6 +22,7 @@
 #include "./recordStruct/loanapply.h"
 #include "./recordStruct/structs.h"
 #include "./recordStruct/transection.h"
+#include "./recordStruct/client_data.h"
 //================================ ADMIN    ==================================
 #include "./admin/admin.h"
 //================================ CUSTOMER ==================================
@@ -106,7 +107,7 @@ write(STDOUT_FILENO, message, strlen(message));
 void connection_handler(int connectionFileDescriptor)
 {
     printf("Client has connected to the server!\n");
-
+ struct clientData clientData;
     char readBuffer[1000], writeBuffer[1000];
     ssize_t readBytes, writeBytes;
     int userChoice;
@@ -151,7 +152,6 @@ void connection_handler(int connectionFileDescriptor)
             }
         }
     }
-    
     printf("Terminating connection to client!\n");
     (*total_clients)--;
     char message[50];

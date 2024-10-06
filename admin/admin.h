@@ -3,6 +3,7 @@
 
 #include "../resource/constantTerms.h"
 #include "../recordStruct/structs.h"
+#include "../recordStruct/client_data.h"
 #include "../resource/commanFun.h"
 #include "../resource/set.h"
 #include "../resource/shFile.h"
@@ -16,8 +17,8 @@ bool admin_operation_handler(int connFD);
 bool add_account(int connFD);
 bool view_employee_account(int connFD,int type,int range,char *str);
 int add_customer(int connFD);
-bool delete_account(int connFD);
 int add_employee(int connFD);
+// bool logout(int connFD)
 // bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer);
 
 // =====================================================
@@ -27,9 +28,10 @@ int add_employee(int connFD);
 // =====================================================
 
 bool admin_operation_handler(int connFD)
-{
-
-    if (login_handler(true, connFD, NULL))
+{    
+    struct clientData clientData;
+     
+    if (login_handler(true, connFD, NULL,&clientData))
     {
         ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
         char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading & writing to the client
@@ -72,20 +74,22 @@ bool admin_operation_handler(int connFD)
             case 5:
                 add_employee(connFD);
                 break;
-            case 7:
-                // modify_customer_info(connFD);
-                view_employee_account(connFD,0,-1,"");
-
+            case 6:
+                delete_account(connFD,true);
                 break;
+            case 7:
+                view_employee_account(connFD,0,-1,"");
+            
+                break;
+            case 8:
+                logout(connFD,ADMIN_USER_NAME);
             default:
-                // writeBytes = write(connFD, ADMIN_LOGOUT, strlen(ADMIN_LOGOUT));
                 return false;
             }
         }
     }
     else
     {
-        // ADMIN LOGIN FAILED
         return false;
     }
     return true;
@@ -260,145 +264,6 @@ int add_customer(int connFD)
     readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
 
     // return newCustomer.accountNumber;
-}
-
-bool delete_account(int connFD)
-{
-    ssize_t readBytes, writeBytes;
-    char readBuffer[1000], writeBuffer[1000];
-
-    struct Account account;
-
-    writeBytes = write(connFD, ADMIN_DEL_ACCOUNT_NO, strlen(ADMIN_DEL_ACCOUNT_NO));
-    if (writeBytes == -1)
-    {
-        perror("Error writing ADMIN_DEL_ACCOUNT_NO to client!");
-        return false;
-    }
-
-    bzero(readBuffer, sizeof(readBuffer));
-    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
-    if (readBytes == -1)
-    {
-        perror("Error reading account number response from the client!");
-        return false;
-    }
-
-    int accountNumber = atoi(readBuffer);
-
-    int accountFileDescriptor = open(ACCOUNT_FILE, O_RDONLY);
-    if (accountFileDescriptor == -1)
-    {
-        // Account record doesn't exist
-        bzero(writeBuffer, sizeof(writeBuffer));
-        strcpy(writeBuffer, ACCOUNT_ID_DOESNT_EXIT);
-        strcat(writeBuffer, "^");
-        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-        if (writeBytes == -1)
-        {
-            perror("Error while writing ACCOUNT_ID_DOESNT_EXIT message to client!");
-            return false;
-        }
-        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        return false;
-    }
-
-
-    int offset = lseek(accountFileDescriptor, accountNumber * sizeof(struct Account), SEEK_SET);
-    if (errno == EINVAL)
-    {
-        // Customer record doesn't exist
-        bzero(writeBuffer, sizeof(writeBuffer));
-        strcpy(writeBuffer, ACCOUNT_ID_DOESNT_EXIT);
-        strcat(writeBuffer, "^");
-        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-        if (writeBytes == -1)
-        {
-            perror("Error while writing ACCOUNT_ID_DOESNT_EXIT message to client!");
-            return false;
-        }
-        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        return false;
-    }
-    else if (offset == -1)
-    {
-        perror("Error while seeking to required account record!");
-        return false;
-    }
-
-    struct flock lock = {F_RDLCK, SEEK_SET, offset, sizeof(struct Account), getpid()};
-    int lockingStatus = fcntl(accountFileDescriptor, F_SETLKW, &lock);
-    if (lockingStatus == -1)
-    {
-        perror("Error obtaining read lock on Account record!");
-        return false;
-    }
-
-    readBytes = read(accountFileDescriptor, &account, sizeof(struct Account));
-    if (readBytes == -1)
-    {
-        perror("Error while reading Account record from file!");
-        return false;
-    }
-
-    lock.l_type = F_UNLCK;
-    fcntl(accountFileDescriptor, F_SETLK, &lock);
-
-    close(accountFileDescriptor);
-
-    bzero(writeBuffer, sizeof(writeBuffer));
-    if (account.balance == 0)
-    {
-        // No money, hence can close account
-        account.active = false;
-        accountFileDescriptor = open(ACCOUNT_FILE, O_WRONLY);
-        if (accountFileDescriptor == -1)
-        {
-            perror("Error opening Account file in write mode!");
-            return false;
-        }
-
-        offset = lseek(accountFileDescriptor, accountNumber * sizeof(struct Account), SEEK_SET);
-        if (offset == -1)
-        {
-            perror("Error seeking to the Account!");
-            return false;
-        }
-
-        lock.l_type = F_WRLCK;
-        lock.l_start = offset;
-
-        int lockingStatus = fcntl(accountFileDescriptor, F_SETLKW, &lock);
-        if (lockingStatus == -1)
-        {
-            perror("Error obtaining write lock on the Account file!");
-            return false;
-        }
-
-        writeBytes = write(accountFileDescriptor, &account, sizeof(struct Account));
-        if (writeBytes == -1)
-        {
-            perror("Error deleting account record!");
-            return false;
-        }
-
-        lock.l_type = F_UNLCK;
-        fcntl(accountFileDescriptor, F_SETLK, &lock);
-
-        strcpy(writeBuffer, ADMIN_DEL_ACCOUNT_SUCCESS);
-    }
-    else
-        // Account has some money ask customer to withdraw it
-        strcpy(writeBuffer, ADMIN_DEL_ACCOUNT_FAILURE);
-    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-    if (writeBytes == -1)
-    {
-        perror("Error while writing final DEL message to client!");
-        return false;
-    }
-    readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-
-    return true;
 }
 
 int add_employee(int connFD)

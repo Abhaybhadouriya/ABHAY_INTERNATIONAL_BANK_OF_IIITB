@@ -6,6 +6,7 @@
         "commanfun.h": "c",
         "ipc.h": "c",
         "set.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "transection.h": "c"
     }
 }

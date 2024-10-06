@@ -22,9 +22,11 @@
 #include "../recordStruct/account.h"
 #include "../recordStruct/employee.h"
 #include "../recordStruct/structs.h"
+#include "../recordStruct/client_data.h"
+
 // Function Prototypes =================================
 
-bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer);
+bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer,struct clientData *clientData);
 bool get_account_details(int connFD, struct Account *customerAccount);
 bool get_customer_details(int connFD, int customerID);
 bool get_transaction_details(int connFD, int accountNumber);
@@ -32,11 +34,16 @@ char* getRole(int role);
 int get_last_number_of_loginID(char *input);
 bool view_employee_account(int connFD,int role,int range,char *str);
 bool updateDetails(int connFD,bool isAdmin);
-// =====================================================
+bool logout(int connFD,char *str);
+bool delete_account(int connFD,bool isAdmin);
+
+// ==========================================2===========
 
 // Function Definition =================================
 
-
+bool logout(int connFD,char *str){
+    return remove_from_shared_set(str);
+}
 
 
 bool view_employee_account(int connFD,int role,int range,char *str){
@@ -180,7 +187,7 @@ for (off_t i = 0; i < offset; i += sizeof(struct Employee)) {
     // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     return true;
 };
-bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID)
+bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID,struct clientData *clientData)
 {
     ssize_t readBytes, writeBytes;            // Number of bytes written to / read from the socket
     char readBuffer[1000], writeBuffer[1000]; // Buffer for reading from / writing to the client
@@ -301,22 +308,41 @@ bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID)
         strcpy(hashedPassword, crypt(readBuffer, SALT_BAE));
         if (isAdmin)
         {
-            if (strcmp(hashedPassword, ADMIN_PASS_WORD) == 0)
-                return true;
+            if (strcmp(hashedPassword, ADMIN_PASS_WORD) == 0){
+                 if(!add_to_shared_set(ADMIN_USER_NAME))
+               {
+                bzero(writeBuffer, sizeof(writeBuffer));
+                writeBytes = write(connFD,CUSTOMER_ALREADY_LOGGED_IN, strlen(CUSTOMER_ALREADY_LOGGED_IN));
+                return false;
+               }
+               else{ 
+                   strcpy((*clientData).name ,ADMIN_USER_NAME);
+                strcpy((*clientData).username,ADMIN_USER_NAME);
+               return true;
+               }
+                }
         }
         else
         {
             if (strcmp(hashedPassword, account.password) == 0)
             {
 
+
+              if(!account.active){
+                  bzero(writeBuffer, sizeof(writeBuffer));
+                write(connFD,"Account is currently Not Active Please contact you Bank!$", strlen("Account is currently Not Active Please contact you Bank!$"));
+                 return false;
+               }
                if(!add_to_shared_set(account.login))
                {
                 bzero(writeBuffer, sizeof(writeBuffer));
                 writeBytes = write(connFD,CUSTOMER_ALREADY_LOGGED_IN, strlen(CUSTOMER_ALREADY_LOGGED_IN));
                 return false;
                }
-               else 
+                strcpy((*clientData).name ,account.name);
+                strcpy((*clientData).username,account.login);
                return true;
+              
             }
         }
 
@@ -357,7 +383,7 @@ bool get_customer_details(int connFD, int customerID)
         if (readBytes == -1)
         {
             perror("Error getting customer ID from client!");
-            ;
+            
             return false;
         }
         strcpy(tempCustID, readBuffer);
@@ -770,7 +796,214 @@ bool updateDetails(int connFD,bool isAdmin)
 
     return true;
 }
+bool delete_account(int connFD,bool isAdmin)
+{
+    ssize_t readBytes, writeBytes;
+    char readBuffer[1000], writeBuffer[1000];
 
+    struct Account account;
+    struct Employee employee;
+    int role;
+    int customerID;
+    char targetCusID[1000];
+    if(isAdmin){
+        writeBytes = write(connFD, ADMIN_WHO_TO_DEACT_ACT, strlen(ADMIN_WHO_TO_DEACT_ACT));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_MODIFY_PROMT message to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while getting TYPE from client!");
+            return false;
+        }
+
+        int temp = atoi(readBuffer); 
+        if(temp==1){
+            role =1;
+        }else if(temp==2||temp==3){
+            role =2;
+        }else{
+            writeBytes = write(connFD, "Invalid Input", strlen("Invalid Input"));
+            return true;
+
+        }
+         writeBytes = write(connFD, ADMIN_GET_UNIQUE_ID, strlen(ADMIN_GET_UNIQUE_ID));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_GET_UNIQUE_ID to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while reading UNIQUE ID from client!");
+            return false;
+        }
+        strcpy(targetCusID, readBuffer);
+        customerID=get_last_number_of_loginID(readBuffer);
+
+
+    }
+
+
+    // writeBytes = write(connFD, ADMIN_DEL_ACCOUNT_NO, strlen(ADMIN_DEL_ACCOUNT_NO));
+    // if (writeBytes == -1)
+    // {
+    //     perror("Error writing ADMIN_DEL_ACCOUNT_NO to client!");
+    //     return false;
+    // }
+
+    // bzero(readBuffer, sizeof(readBuffer));
+    // readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    // if (readBytes == -1)
+    // {
+    //     perror("Error reading account number response from the client!");
+    //     return false;
+    // }
+
+    // int accountNumber = atoi(readBuffer);
+
+    int accountFileDescriptor = open(role==1?ACCOUNT_FILE:EMPLOYEE_FILE, O_RDONLY);
+    if (accountFileDescriptor == -1)
+    {
+        // Account record doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, ACCOUNT_ID_DOESNT_EXIT);
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ACCOUNT_ID_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+
+
+    int offset = lseek(accountFileDescriptor, customerID*( role==1?sizeof(struct Account):sizeof(struct Employee)), SEEK_SET);
+    if (errno == EINVAL)
+    {
+        // Customer record doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, ACCOUNT_ID_DOESNT_EXIT);
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ACCOUNT_ID_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    else if (offset == -1)
+    {
+        perror("Error while seeking to required account record!");
+        return false;
+    }
+
+    struct flock lock = {F_RDLCK, SEEK_SET, offset, (role==1?sizeof(struct Account):sizeof(struct Employee)), getpid()};
+    int lockingStatus = fcntl(accountFileDescriptor, F_SETLKW, &lock);
+    if (lockingStatus == -1)
+    {
+        perror("Error obtaining read lock on Account record!");
+        return false;
+    }
+    if(role==1)readBytes = read(accountFileDescriptor, &account, sizeof(struct Account));
+    else readBytes = read(accountFileDescriptor, &employee, sizeof(struct Employee));
+    if (readBytes == -1)
+    {
+        perror("Error while reading Account record from file!");
+        return false;
+    }
+
+    lock.l_type = F_UNLCK;
+    fcntl(accountFileDescriptor, F_SETLK, &lock);
+
+    close(accountFileDescriptor);
+
+    bzero(writeBuffer, sizeof(writeBuffer));
+    if (role==1&&account.balance == 0|| role==2)
+    {   
+        bool status = role==1?account.active:employee.active;
+        writeBytes = write(connFD, status?ADMIN_DEACT_NOTIFY:ADMIN_ACT_NOTIFY, strlen(status?ADMIN_DEACT_NOTIFY:ADMIN_ACT_NOTIFY));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_MODIFY_PROMT message to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while getting TYPE from client!");
+            return false;
+        }
+        int temp = atoi(readBuffer); 
+        if(temp>1){ 
+            
+            write(connFD, "Operation Cancelled Redirecting to Main Menu^", strlen("Operation Cancelled Redirecting to Main Menu^"));
+            return true;
+        }
+        // No money, hence can close account
+        if(role==1) account.active = !account.active;
+        else employee.active = !employee.active;
+
+        accountFileDescriptor = open(role==1?ACCOUNT_FILE:EMPLOYEE_FILE, O_WRONLY);
+        if (accountFileDescriptor == -1)
+        {
+            perror("Error opening Account file in write mode!");
+            return false;
+        }
+
+        offset = lseek(accountFileDescriptor, customerID*( role==1?sizeof(struct Account):sizeof(struct Employee)), SEEK_SET);
+        if (offset == -1)
+        {
+            perror("Error seeking to the Account!");
+            return false;
+        }
+
+        lock.l_type = F_WRLCK;
+        lock.l_start = offset;
+
+        int lockingStatus = fcntl(accountFileDescriptor, F_SETLKW, &lock);
+        if (lockingStatus == -1)
+        {
+            perror("Error obtaining write lock on the Account file!");
+            return false;
+        }
+         if(role==1)  writeBytes = write(accountFileDescriptor, &account, sizeof(struct Account));
+        else   writeBytes = write(accountFileDescriptor, &employee, sizeof(struct Employee));
+        if (writeBytes == -1)
+        {
+            perror("Error deleting account record!");
+            return false;
+        }
+
+        lock.l_type = F_UNLCK;
+        fcntl(accountFileDescriptor, F_SETLK, &lock);
+
+        strcpy(writeBuffer, ADMIN_DEL_ACCOUNT_SUCCESS);
+    }
+    else
+        // Account has some money ask customer to withdraw it
+        strcpy(writeBuffer, ADMIN_DEL_ACCOUNT_FAILURE);
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+    if (writeBytes == -1)
+    {
+        perror("Error while writing final DEL message to client!");
+        return false;
+    }
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+    return true;
+}
 char* getRole(int role){
     if(role==0) return "Manager";
     return "Employee";

@@ -30,4 +30,22 @@ bool add_to_shared_set(const char *str) {
         return true;        
     }else return false;
 }
+// Function to remove a string from the shared set
+bool remove_from_shared_set(const char *str) {
+    // Find if the string is present in the set
+    for (int i = 0; i < *shared_set_size; i++) {
+        if (strcmp(shared_set[i], str) == 0) {
+            // Shift elements to the left to remove the string
+            for (int j = i; j < *shared_set_size - 1; j++) {
+                strcpy(shared_set[j], shared_set[j + 1]);
+            }
+            // Decrease the size of the set
+            (*shared_set_size)--;
+            display_set(shared_set, *shared_set_size); // Display updated set
+            return true;  // String found and removed
+        }
+    }
+    return false;  // String not found
+}
+
 #endif 

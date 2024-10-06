@@ -40,7 +40,12 @@
 #define ADMIN_LOGIN_SUCCESS "Welcome back The Great Great Abhay Bhadouriya!"
 
 // ADMIN MENU
-#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee \n5. Add Employee\n6. Remove Employee\n7. View Managers List\n8. Remove Manager\nPress any other key to logout"
+#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee List\n5. Add Employee\n6. Remove Emp\\Customer  \n7. View Managers List\n8. Logout\nPress any other key to logout"
+
+// DELETE ACTIVATE DEACTIVATE ACCOUNT
+#define ADMIN_WHO_TO_DEACT_ACT "Who do you want to Activate/Deactivate\n\t1. Customer\n\t2. Manager \n\t3. Employee"
+#define ADMIN_DEACT_NOTIFY "This account is currently Active you want it to Deactivate\n(After this user will not able to login)\n\n\t1. Press 1 to Deactivate\n\t2. Press 2 to return to Main Menu"
+#define ADMIN_ACT_NOTIFY "This account is currently Deactivated you want it to Activate\n(After this user will able to login)\n\n\t1. Press 1 to Activate\n\t2. Press 2 to return to Main Menu"
 
 // ADD CUSTOMER
 #define ADMIN_ADD_CUSTOMER_NAME "What is the customer's name?"
@@ -172,6 +177,7 @@
 
 // ====================================================
 
+#define ERROR_CLOSE "10122000"
 
 #define ACCOUNT_FILE "./database/account.abhay.bank"
 #define LOAN_FILE "./database/loan.abhay.bank"

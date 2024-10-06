@@ -2,10 +2,22 @@
 #include <errno.h>      
 #include <fcntl.h>     
 #include <unistd.h>     
+#include <stdlib.h>
 #include <sys/types.h> 
 #include <sys/socket.h> 
 #include <netinet/ip.h> 
 #include <string.h>    
+//================================ RESOURCES ================================
+#include "./resource/set.h"
+#include "./resource/shFile.h"
+#include "./resource/commanFun.h"
+#include "./resource/constantTerms.h"
+//================================ STRUCT__FUN ================================
+#include "./recordStruct/employee.h"
+#include "./recordStruct/account.h"
+#include "./recordStruct/loanapply.h"
+#include "./recordStruct/structs.h"
+#include "./recordStruct/transection.h"
 void connection_handler(int sockFD); // Handles the read & write operations to the server
 
 void main()
@@ -42,14 +54,16 @@ void connection_handler(int sockFD)
 {
     char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading from / writting to the server
     ssize_t readBytes, writeBytes;            // Number of bytes read from / written to the socket
-
+    struct Employee employee;
+    struct Account account;
+   
     char tempBuffer[1000];
 
-    do
-    {
-        bzero(readBuffer, sizeof(readBuffer)); // Empty the read buffer
+    do{
+         bzero(readBuffer, sizeof(readBuffer)); // Empty the read buffer
         bzero(tempBuffer, sizeof(tempBuffer));
         readBytes = read(sockFD, readBuffer, sizeof(readBuffer));
+       
         if (readBytes == -1)
             perror("Error while reading from client socket!");
         else if (readBytes == 0)
