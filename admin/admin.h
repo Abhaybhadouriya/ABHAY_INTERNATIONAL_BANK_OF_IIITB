@@ -60,7 +60,7 @@ bool admin_operation_handler(int connFD)
             switch (choice)
             {
             case 1:
-                get_customer_details(connFD, -1);
+                get_customer_details(connFD, -1,clientData);
                 break;
             case 2:
                 add_customer(connFD);

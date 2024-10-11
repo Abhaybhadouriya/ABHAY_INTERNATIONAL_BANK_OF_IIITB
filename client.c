@@ -33,11 +33,8 @@ void main()
         _exit(0);
     }
 
-    serverAddress.sin_family = AF_INET;                // IPv4
-    serverAddress.sin_port = htons(8081);              // Server will listen to port 8080
-    serverAddress.sin_addr.s_addr = htonl(INADDR_ANY); // Binds the socket to all interfaces
-
-    connectStatus = connect(socketFileDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
+   
+   connectStatus = connect(socketFileDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
     if (connectStatus == -1)
     {
         perror("Error while connecting to server!");

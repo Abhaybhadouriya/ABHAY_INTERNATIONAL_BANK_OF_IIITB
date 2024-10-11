@@ -6,14 +6,17 @@
 struct Loanapply
 {
     int accountNumber;
-    char nameAccountHolder;
+    char custName[30];
+    char custLogID[30];
+    // char nameAccountHolder;
     long int newBalance;
     int handleByEmpID;
     char nameEmployee[30];    
     int status; //0->applied , 1->assigned ,2->approved,3->declined
     int approvedByEMP;
-    time_t processedTime;
-    time_t appliedTime;
+    //  char transactionTime[100];
+    char processedTime[100];
+    char appliedTime[100];
 };
 
 #endif

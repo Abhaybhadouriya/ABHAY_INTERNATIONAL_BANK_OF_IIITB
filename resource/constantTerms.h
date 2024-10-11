@@ -69,6 +69,12 @@
 // ADD ACCOUNT
 #define ADMIN_ADD_ACCOUNT_NUMBER "The newly created account's number is :"
 
+
+// ADD FEEDBACK 
+#define CUSTOMER_FEEDBACK "Write your Feedback\n"
+#define CUSTOMER_LOAN_MENU "Welcome to Abhay Bhadouriya International bank of IIITB Loan services.\n\t1. Apply Loan\n\t2. Loan Status"
+#define CUSTOMER_LOAN_APPLY "Enter your desired ammount you want to apply : \n"
+#define CUSTOMER_LOAN_APPLIED "Thanks for opting the Abhay Bhadouriya International bank of IIITB Loan services. your loan requested is submitted."
 // DELETE ACCOUNT
 #define ADMIN_DEL_ACCOUNT_NO "What is the account number of the account you want to delete?"
 #define ADMIN_DEL_ACCOUNT_SUCCESS "This account has been successfully deleted\nRedirecting you to the main menu ...^"
@@ -144,7 +150,7 @@
 #define CUSTOMER_LOGOUT "Logging you out now dear customer! Good bye!$"
 
 // ADMIN MENU
-#define CUSTOMER_MENU "1. Get Customer Details\n2. Deposit Money\n3. Withdraw Money\n4. Get Balance\n5. Get Transaction information\n6. Change Password\n7. Loan Menu\n8. Transfer Money\n9. Add FeedBack\nPress any other key to logout"
+#define CUSTOMER_MENU "1. Get Customer Details\n2. Deposit Money\n3. Withdraw Money\n4. Get Balance\n5. Get Transaction information\n6. Change Password\n7. Transfer Money\n8. Add FeedBack\n9 Apply Loan\n10. Logout\nPress any other key to logout"
 
 #define ACCOUNT_DEACTIVATED "It seems your account has been deactivated!^"
 
@@ -183,5 +189,12 @@
 #define LOAN_FILE "./database/loan.abhay.bank"
 #define TRANSACTION_FILE "./database/transactions.abhay.bank"
 #define EMPLOYEE_FILE "./database/employee.abhay.bank"
+#define FEEDBACK_FILE "./database/Feedback.abhay.bank"
+
 // #include "../recordStruct/structs.h"
+
+//------------TYPE DEFINE
+#define ADMIN_TYPE 1
+#define CUSTR_TYPE 2
+#define EMPLY_TYPE 3
 #endif

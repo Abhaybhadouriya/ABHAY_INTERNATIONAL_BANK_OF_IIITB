@@ -23,6 +23,7 @@
 #include "./recordStruct/structs.h"
 #include "./recordStruct/transection.h"
 #include "./recordStruct/client_data.h"
+#include "./recordStruct/customerFeedback.h"
 //================================ ADMIN    ==================================
 #include "./admin/admin.h"
 //================================ CUSTOMER ==================================
@@ -92,8 +93,8 @@ void main()
                 // Child will enter this branch
                  (*total_clients)++;
                char message[50];
-sprintf(message, "Total clients: %d\n", *total_clients);
-write(STDOUT_FILENO, message, strlen(message));
+                sprintf(message, "Total clients: %d\n", *total_clients);
+                write(STDOUT_FILENO, message, strlen(message));
                 connection_handler(connectionFileDescriptor);
                 close(connectionFileDescriptor);
                 _exit(0);

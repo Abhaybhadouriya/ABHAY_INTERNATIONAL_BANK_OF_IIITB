@@ -5,6 +5,9 @@
 struct clientData {
     char name[100];
     char username[100];
+    int userid;
+    char password[30];
+
     // Other client-specific data
 };
 
