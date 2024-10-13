@@ -23,7 +23,7 @@
 
 #define CUSTOMER_ID_DOESNT_EXIT "No customer could be found for the given ID"
 #define CUSTOMER_LOGIN_ID_DOESNT_EXIT "No customer could be found for the given login ID$"
-
+#define EMPLOYEE_LOGIN_ID_DOESNT_EXIT "No Employee could be found for the given login ID$"
 #define ACCOUNT_ID_DOESNT_EXIT "No account could be found for the given account number"
 
 #define TRANSACTIONS_NOT_FOUND "No transactions were performed on this account by the customer!^"
@@ -40,7 +40,7 @@
 #define ADMIN_LOGIN_SUCCESS "Welcome back The Great Great Abhay Bhadouriya!"
 
 // ADMIN MENU
-#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee List\n5. Add Employee\n6. Remove Emp\\Customer  \n7. View Managers List\n8. Logout\nPress any other key to logout"
+#define ADMIN_MENU "1. Get customer Account\n2. Add customer Account\n3. Modify\n4. View Employee List\n5. Add Employee\n6. Remove Emp\\Customer  \n7. View Managers List\n8. Password Change\n9. Logout\nPress any other key to logout"
 
 // DELETE ACTIVATE DEACTIVATE ACCOUNT
 #define ADMIN_WHO_TO_DEACT_ACT "Who do you want to Activate/Deactivate\n\t1. Customer\n\t2. Manager \n\t3. Employee"
@@ -113,7 +113,7 @@
 
 // MANAGER MENU
 
-#define MANAGER_MENU "Hello Manager\n1. Activate/Deactivate Account\n2. Assign Loan\n3. Review FeedBack\n4. ChangePassword \n5. Logout\n 6. Exit"
+#define MANAGER_MENU "Hello Manager\n1. Activate/Deactivate Account\n2. Assign Loan\n3. Review FeedBack\n4. ChangePassword \n5. Logout"
 #define MANAGER_ACT_DEACT_ACC "Enter the Account number  you want to perform Activate/Deactivate Account:"
 #define MANAGER_ASSIGN_LOAN_MENU "LOAN MENU\n1. Approved Loans\n2. Pending Loans to take Action\n3. In Process Loans"
 #define MANAGER_ACC "Enter the Loan Account Number"
@@ -122,6 +122,7 @@
 // ====================================================
 
 //EMPLOYEE
+#define EMPLOYEE_MENU "Hello Employee\n\t1. Add Customer\n\t2. Modify Customer Detials\n\t3. Approve/Reject Loans\n\t4. View assigned Loans\n\t5. Customer Transections\n\t6. Change Password\n\t7. Logout\n"
 #define MENU_ADD_NEW_CUSTOMER "Add New Customer"
 #define MENU_MODIFY_CUSTOMER_DETAILS "Modify Customer Details"
 #define MENU_PROCESS_LOAN_APPLICATIONS "Process Loan Applications"
@@ -136,6 +137,8 @@
 #define MENU_EXIT "Exit"
 
 
+// login
+#define EMPLOYEE_LOGIN_WELCOME "Welcome dear Employee! Enter your credentials to gain access to your account!"
 //===========================================
 
 

@@ -124,7 +124,7 @@ bool customerDriver(int connFD)
                 break;
             default:
                 write(connFD,"Invalid Input! Please enter Valid choice\n",strlen("Invalid Input! Please enter Valid choice\n"));
-                
+                break;
             }
         }
     }

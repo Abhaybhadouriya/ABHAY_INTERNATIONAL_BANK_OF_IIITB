@@ -398,6 +398,7 @@ bool get_customer_details(int connFD, int customerID,struct clientData clientDat
         // tempCustID =readBuffer;
        toSeek = get_last_number_of_loginID(readBuffer);
         customerID = atoi(readBuffer);
+        write(STDOUT_FILENO,readBuffer,strlen(readBuffer));
         // printf("%d",customerID);
     }else{
         strcpy(tempCustID,clientData.username);
@@ -532,6 +533,27 @@ bool updateDetails(int connFD,bool isAdmin)
 
 
         role = atoi(readBuffer);
+         writeBytes = write(connFD, ADMIN_GET_UNIQUE_ID, strlen(ADMIN_GET_UNIQUE_ID));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_GET_UNIQUE_ID to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while reading UNIQUE ID from client!");
+            return false;
+        }
+        strcpy(targetCusID, readBuffer);
+        customerID=get_last_number_of_loginID(readBuffer);
+
+
+    }else{
+      
+
+        role = 1;
          writeBytes = write(connFD, ADMIN_GET_UNIQUE_ID, strlen(ADMIN_GET_UNIQUE_ID));
         if (writeBytes == -1)
         {
@@ -861,6 +883,28 @@ bool delete_account(int connFD,bool isAdmin)
         customerID=get_last_number_of_loginID(readBuffer);
 
 
+    }else{
+        {
+        role =1;
+       
+        writeBytes = write(connFD, ADMIN_GET_UNIQUE_ID, strlen(ADMIN_GET_UNIQUE_ID));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing ADMIN_GET_UNIQUE_ID to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error while reading UNIQUE ID from client!");
+            return false;
+        }
+        strcpy(targetCusID, readBuffer);
+        customerID=get_last_number_of_loginID(readBuffer);
+
+
+    }
     }
 
     int accountFileDescriptor = open(role==1?ACCOUNT_FILE:EMPLOYEE_FILE, O_RDONLY);

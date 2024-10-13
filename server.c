@@ -16,6 +16,7 @@
 #include "./resource/shFile.h"
 #include "./resource/commanFun.h"
 #include "./resource/constantTerms.h"
+#include "./resource/employeeNeeds.h"
 //================================ STRUCT__FUN ================================
 #include "./recordStruct/employee.h"
 #include "./recordStruct/account.h"
@@ -140,12 +141,12 @@ void connection_handler(int connectionFileDescriptor)
                 customerDriver(connectionFileDescriptor);
                 break;
              case 3:
-                // Customer
-                // manager_operation_handler(connectionFileDescriptor);
+                // Manager
+                manager_operation_handler(connectionFileDescriptor);
                 break;
              case 4:
-                // Customer
-                // employee_operation_handler(connectionFileDescriptor);
+                // Employee
+                employee_operation_handler(connectionFileDescriptor);
                 break;
             default:
                 // Exit

@@ -9,6 +9,10 @@
         "typeinfo": "c",
         "transection.h": "c",
         "client_data.h": "c",
-        "customerfeedback.h": "c"
+        "customerfeedback.h": "c",
+        "sem.h": "c",
+        "crypt.h": "c",
+        "loanapply.h": "c",
+        "employeeneeds.h": "c"
     }
 }

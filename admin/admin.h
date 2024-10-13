@@ -18,6 +18,8 @@ bool add_account(int connFD);
 bool view_employee_account(int connFD,int type,int range,char *str);
 int add_customer(int connFD);
 int add_employee(int connFD);
+bool updateAdminPassword(int connFD) ;
+#define FILE_PATH "./admin/admin_cred.h"
 // bool logout(int connFD)
 // bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer);
 
@@ -82,9 +84,15 @@ bool admin_operation_handler(int connFD)
             
                 break;
             case 8:
+                updateAdminPassword(connFD);
+                break;
+            case 9:
                 logout(connFD,ADMIN_USER_NAME);
+
+                break;
             default:
-                return false;
+                write(connFD,"Invalid Input",strlen("Invalid Input"));
+                return true;
             }
         }
     }
@@ -95,6 +103,86 @@ bool admin_operation_handler(int connFD)
     return true;
 }
 
+bool updateAdminPassword(int connFD) {
+    ssize_t readBytes, writeBytes;
+    char readBuffer[1000], writeBuffer[1000], hashedPassword[1000];
+
+    char newPassword[1000]; 
+
+      writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS, strlen(PASSWORD_CHANGE_NEW_PASS));
+        if (writeBytes == -1)
+        {
+            perror("Error writing PASSWORD_CHANGE_NEW_PASS message to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error reading new password response from client");
+            return false;
+        }
+
+        strcpy(newPassword, crypt(readBuffer, SALT_BAE));
+
+        writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS_RE, strlen(PASSWORD_CHANGE_NEW_PASS_RE));
+        if (writeBytes == -1)
+        {
+            perror("Error writing PASSWORD_CHANGE_NEW_PASS_RE message to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+        {
+            perror("Error reading new password reenter response from client");
+            return false;
+        }
+        write(STDIN_FILENO,readBuffer,strlen(readBuffer));
+
+  if (strcmp(crypt(readBuffer, SALT_BAE), newPassword) == 0) {
+        // Open the file for writing (truncate or create)
+        int fd = open(FILE_PATH, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+        if (fd == -1) {
+            perror("Error: Could not open the file");
+            return false;
+        }
+
+        // Write the updated password information to the file
+        const char* header = "#ifndef ADMIN_CRED\n#define ADMIN_CRED\n\n";
+        const char* admin_user_name = "#define ADMIN_USER_NAME \"abhay\"\n";
+        char admin_password[1200];
+        
+        // Format the password entry
+        snprintf(admin_password, sizeof(admin_password), "#define ADMIN_PASS_WORD \"%s\" // \"abhay\"\n", newPassword);
+        const char* footer = "\n#endif\n";
+
+        // Write the new content to the file
+        if (write(fd, header, strlen(header)) == -1 ||
+            write(fd, admin_user_name, strlen(admin_user_name)) == -1 ||
+            write(fd, admin_password, strlen(admin_password)) == -1 ||
+            write(fd, footer, strlen(footer)) == -1) {
+            perror("Error writing to the file");
+            close(fd);
+            return false;
+        }
+
+        // Close the file descriptor
+        close(fd);
+
+        // Notify the client that the password has been updated
+        writeBytes = write(connFD, "Admin password updated successfully!\n", strlen("Admin password updated successfully!\n"));
+        if (writeBytes == -1) {
+            perror("Error writing success message to client");
+            return false;
+        }
+
+        return true;  // Success
+    } else {
+        write(connFD, "Passwords do not match!\n", strlen("Passwords do not match!\n"));
+        return false;  // Passwords didn't match
+    }
+}
 
 int add_customer(int connFD)
 {
