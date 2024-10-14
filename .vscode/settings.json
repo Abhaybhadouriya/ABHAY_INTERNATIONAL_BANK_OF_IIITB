@@ -13,6 +13,7 @@
         "sem.h": "c",
         "crypt.h": "c",
         "loanapply.h": "c",
-        "employeeneeds.h": "c"
+        "employeeneeds.h": "c",
+        "time.h": "c"
     }
 }

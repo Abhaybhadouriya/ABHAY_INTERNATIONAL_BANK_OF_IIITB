@@ -24,13 +24,14 @@
 #include "../recordStruct/structs.h"
 #include "../recordStruct/loanapply.h"
 #include "../recordStruct/client_data.h"
+#include "../recordStruct/transection.h"
 
 // Function Prototypes =================================
 
 bool get_account_details(int connFD, struct Account *customerAccount);
 bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer,struct clientData *clientData);
 bool get_customer_details(int connFD, int customerID,struct clientData clientData);
-bool get_transaction_details(int connFD, int accountNumber);
+bool view_transections(int connFD,char *str);
 char* getRole(int role);
 int get_last_number_of_loginID(char *input);
 bool view_employee_account(int connFD,int role,int range,char *str);
@@ -1442,13 +1443,124 @@ bool printLoanListofUser(int connFD,char *str){
     bzero(printstr,sizeof(printstr));
 
     // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-    return true;
 
 
 
 return true;
 }
+bool view_transections(int connFD,char *str){
+    struct Transaction transaction;
+    char readBuffer[1000], writeBuffer[1000];
+    ssize_t readBytes, writeBytes;
+    time_t currentTime;
+    struct tm *timeInfo;
+    time(&currentTime);
+    timeInfo = localtime(&currentTime);
+    int fileDesp = open(TRANSACTION_FILE,O_RDONLY);
+    struct flock lock = {F_RDLCK, SEEK_SET, 0, 0, getpid()};
 
+    if (fileDesp == -1)
+    {
+        // Customer File doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "No Transection for this User");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing NO Transection message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    off_t fileSize = lseek(fileDesp, 0, SEEK_END);
+     if(fileSize<=0){
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "No Transection for this User");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing NO Transection message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return true;
+    }
+       int offset = lseek(fileDesp, 0, SEEK_SET);
+
+      if (errno == EINVAL)
+    {
+        // Customer record doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "No Transection for this User");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing TRANSECTION_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    else if (offset == -1)
+    {
+        perror("Error while seeking to required Employee record!");
+        return false;
+    }
+
+    lock.l_start = offset;
+
+    int lockingStatus = fcntl(fileDesp, F_SETLKW, &lock);
+    if (lockingStatus == -1)
+    {
+        perror("Error while obtaining read lock on the Customer file!");
+        return false;
+    }
+    char printstr[10000];
+    // struct  Loanapply loanapps;
+    offset = lseek(fileDesp, 0, SEEK_END); 
+
+    lseek(fileDesp, 0, SEEK_SET); 
+    bzero(writeBuffer, sizeof(writeBuffer));
+    for (off_t i = 0; i < offset; i += sizeof(struct Transaction)) {
+        
+        ssize_t readBytes = read(fileDesp, &transaction, sizeof(struct Transaction));
+        if (readBytes == sizeof(struct Transaction)) {
+    
+            
+        if(strcmp(transaction.loginID,str)==0){
+
+            sprintf(writeBuffer, "Transection : \n\tTransection ID : %d\n\tAccount No : %d\n\tCustomer ID : %s\n\tTransection Type : %s\n\tOld Balance : %ld\n\tNew Balance L %ld\n\tTime : %s\n",transaction.transactionID,transaction.accountNumber,transaction.loginID,(transaction.operation==0?"Withdraw":transaction.operation==1?"Deposit":"Transfer"),transaction.oldBalance,transaction.newBalance,transaction.transactionTime);
+            strcat(printstr, writeBuffer);
+        }
+            }else  if (readBytes == 0) {
+                break;
+            }  else {
+                break;
+            }
+        }
+       lock.l_type = F_UNLCK;
+    fcntl(fileDesp, F_SETLK, &lock);
+   
+    writeBytes = write(connFD,printstr, strlen(printstr));
+    
+    if (writeBytes == -1)
+    {
+        perror("Error writing Transection info to client!");
+        return false;
+    }
+    bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
+
+    // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+
+
+return true;
+}
 
 char* getRole(int role){
     if(role==0) return "Manager";

@@ -18,12 +18,14 @@
 
 
 // Function Prototypes =================================
-
+void assingLoanHandler(int connFD,struct Loanapply);
 bool manager_operation_handler(int connFD);
 bool add_account(int connFD);
 bool view_employee_account(int connFD,int type,int range,char *str);
 int add_customer(int connFD);
 int add_employee(int connFD);
+bool view_feedback(int connFD);
+bool assignLoans(int connFD,struct clientData);
 // bool logout(int connFD)
 // bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer);
 
@@ -100,10 +102,10 @@ bool manager_operation_handler(int connFD)
                 delete_account(connFD,false);
                 break;
             case 2: 
-                // assignLoan(connFD, false);
+                 assignLoans(connFD,clientData);
                 break;
             case 3:
-                // view_feedback(connFD,1,-1,"");
+                view_feedback(connFD);
                 break;
             case 4:
                 change_password(connFD,EMPLY_TYPE,semIdentifier,clientData);            
@@ -123,5 +125,261 @@ bool manager_operation_handler(int connFD)
     }
     return true;
 }
+bool view_feedback(int connFD){
+    struct CustomerFeedback feed;
+    char readBuffer[1000], writeBuffer[1000];
+    ssize_t readBytes, writeBytes;
+    time_t currentTime;
+    struct tm *timeInfo;
+    time(&currentTime);
+    timeInfo = localtime(&currentTime);
+    int fileDesp = open(FEEDBACK_FILE,O_RDONLY);
+    struct flock lock = {F_RDLCK, SEEK_SET, 0, 0, getpid()};
+
+    if (fileDesp == -1)
+    {
+        // Customer File doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "No Feedback");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing NO Feedback message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    off_t fileSize = lseek(fileDesp, 0, SEEK_END);
+     if(fileSize<=0){
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "NO FeedBack");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing NO FeedBack message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return true;
+    }
+       int offset = lseek(fileDesp, 0, SEEK_SET);
+
+      if (errno == EINVAL)
+    {
+        // Customer record doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "NO FeedBack");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing FEEDBACK_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    else if (offset == -1)
+    {
+        perror("Error while seeking to required Employee record!");
+        return false;
+    }
+
+    lock.l_start = offset;
+
+    int lockingStatus = fcntl(fileDesp, F_SETLKW, &lock);
+    if (lockingStatus == -1)
+    {
+        perror("Error while obtaining read lock on the Customer file!");
+        return false;
+    }
+    char printstr[10000];
+    // struct  Loanapply loanapps;
+    offset = lseek(fileDesp, 0, SEEK_END); 
+
+    lseek(fileDesp, 0, SEEK_SET); 
+    bzero(writeBuffer, sizeof(writeBuffer));
+    for (off_t i = 0; i < offset; i += sizeof(struct CustomerFeedback)) {
+        
+        ssize_t readBytes = read(fileDesp, &feed, sizeof(struct CustomerFeedback));
+        if (readBytes == sizeof(struct CustomerFeedback)) {
+    
+            if (readBytes == 0) {
+                break;
+            } 
+            else if(readBytes>0){
+            sprintf(writeBuffer, "FeedBack\n\tAccount No : %d\n\tName : %s\n\tCustomer ID : %s\n\tFeedBack : %s\n\tTime : %s\n",feed.accountNumber,feed.name,feed.login,feed.feedback,feed.transactionTime);
+            strcat(printstr, writeBuffer);}
+           
+            }  else {
+                break;
+            }
+        }
+       lock.l_type = F_UNLCK;
+    fcntl(fileDesp, F_SETLK, &lock);
+   
+    writeBytes = write(connFD,printstr, strlen(printstr));
+    
+    if (writeBytes == -1)
+    {
+        perror("Error writing Employee info to client!");
+        return false;
+    }
+    bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
+
+    // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+
+
+return true;
+}
+
+
+
+bool  assignLoans(int connFD,struct clientData clientData) {
+     ssize_t readBytes, writeBytes;            // Number of bytes written to / read from the socket
+    char readBuffer[1000], writeBuffer[1000]; // Buffer for reading from / writing to the client
+    char tempBuffer[1000];
+    struct Loanapply loan;
+    
+    struct flock lock = {F_RDLCK, SEEK_SET, 0, 0, getpid()};
+    int toSeek=0;
+    int customerFileDescriptor = open(LOAN_FILE, O_RDONLY);
+    if (customerFileDescriptor == -1)
+    {
+        // Customer File doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "NO LOANS APPLICATION");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing LOANS_APPLICATION_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return true;
+    }
+    
+    off_t fileSize = lseek(customerFileDescriptor, 0, SEEK_END);
+     if(fileSize<=toSeek*sizeof(struct Employee)){
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "NO LOANS APPLICATION");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing NO LOANS APPLICATION_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return true;
+    }
+    int offset = lseek(customerFileDescriptor, 0, SEEK_SET);
+
+      if (errno == EINVAL)
+    {
+        // Customer record doesn't exist
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, "NO Employee");
+        strcat(writeBuffer, "^");
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1)
+        {
+            perror("Error while writing EMPLOYEE_DOESNT_EXIT message to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+    else if (offset == -1)
+    {
+        perror("Error while seeking to required Employee record!");
+        return false;
+    }
+
+     lock.l_start = offset;
+
+    int lockingStatus = fcntl(customerFileDescriptor, F_SETLKW, &lock);
+    if (lockingStatus == -1)
+    {
+        perror("Error while obtaining read lock on the Customer file!");
+        return false;
+    }
+    char printstr[10000];
+    struct  Loanapply loanapps;
+    offset = lseek(customerFileDescriptor, 0, SEEK_END); // Get the total size of the file
+
+    lseek(customerFileDescriptor, 0, SEEK_SET); // Reset file pointer to the start of the file
+    bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
+    struct Loanapply  loanarray[100];
+    int loanpointer=0;
+    for (off_t i = 0; i < offset; i += sizeof(struct Loanapply)) {
+        
+        ssize_t readBytes = read(customerFileDescriptor, &loanapps, sizeof(struct Loanapply));
+        loanarray[loanpointer]=loanapps;
+        if (readBytes == sizeof(struct Loanapply)) {
+            // write(STDOUT_FILENO,loanapps.custLogID,strlen(loanapps.custLogID));
+            // write(STDOUT_FILENO,"\n",strlen("\n"));
+            // write(STDOUT_FILENO,str,strlen(str));
+
+            if(loanapps.handleByEmpID==-1){
+            
+            sprintf(writeBuffer, "Loan Details-\n\tLoan ID : %d\n\tAccount No : %d\n\tCustomer Name : %s\n\tCustomer ID : %s\n\tRequested Amount: %ld\n\tEmployee ID (handling by) : %d\n\tEmployee name : %s\n\tStatus : %s\n\tApproved by EMP ID : %d\n\tProcessed Time : %s\n\tApplied Time : %s\n\n",loanpointer, loanapps.accountNumber,loanapps.custName,loanapps.custLogID,loanapps.newBalance,loanapps.handleByEmpID,loanapps.nameEmployee,(loanapps.status==0?"Applied":loanapps.status==1?"Assigned":loanapps.status==2?"Approved":"Declined"),loanapps.approvedByEMP,loanapps.processedTime,loanapps.appliedTime);
+        //    *printstr+=writeBuffer;
+            strcat(printstr, writeBuffer);}
+           
+            } else if (readBytes == 0) {
+                break;
+            } else {
+                break;
+            }
+            loanpointer++;
+        }
+       lock.l_type = F_UNLCK;
+    fcntl(customerFileDescriptor, F_SETLK, &lock);
+   
+    writeBytes = write(connFD,printstr, strlen(printstr));
+    
+    if (writeBytes == -1)
+    {
+        perror("Error writing Loan info to client!");
+        return false;
+    }
+    bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
+    writeBytes = write(connFD,"Enter the Loan ID your want to Assign to an Employee", strlen(printstr));
+    
+    if (writeBytes == -1)
+    {
+        perror("Error writing Loan info to client!");
+        return false;
+    }
+    bzero(readBuffer,sizeof(readBuffer));
+    readBytes = read(connFD,readBuffer,sizeof(readBuffer));
+    if(atoi(readBuffer)<0&&atoi(readBuffer)>255){
+        write(connFD,"INVALID INPUT",strlen("INVALID INPUT"));
+        return true;
+    }
+    assingLoanHandler(connFD,loanarray[atoi(readBuffer)]);
+    bzero(readBuffer,sizeof(readBuffer));
+
+
+    // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+return true;
+}
+void assingLoanHandler(int connFD,struct Loanapply Loanapply){
+     char writeBuffer[1000],readBuffer[1000];
+     write(connFD,"List of Employee",strlen("List of Employee"));
+     view_employee_account(connFD,0,-1,"");
+     write(connFD,"Enter the Employee ID you want to Assign the loan",strlen("Enter the Employee ID you want to Assign the loan"));
+}
+
 
 #endif

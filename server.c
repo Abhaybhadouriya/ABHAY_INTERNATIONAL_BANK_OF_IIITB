@@ -159,4 +159,5 @@ void connection_handler(int connectionFileDescriptor)
     char message[50];
     sprintf(message, "Client disconnected. Total clients: %d\n", *total_clients);
     write(STDOUT_FILENO, message, strlen(message));
+    close(connectionFileDescriptor);
     }

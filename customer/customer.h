@@ -25,7 +25,7 @@ bool get_balance(int connFD,struct clientData clientData);
 bool lock_critical_section(struct sembuf *semOp);
 bool unlock_critical_section(struct sembuf *semOp);
 void write_transaction_to_array(int *transactionArray, int ID);
-int write_transaction_to_file(int accountNumber, long int oldBalance, long int newBalance, bool operation);
+int write_transaction_to_file(char *name,int accountNumber, long int oldBalance, long int newBalance, bool operation);
 bool addFeedback(int connFD, struct clientData clientData);
 bool applyLoan(int connFD,struct clientData clientData);
 int semIdentifier;
@@ -110,6 +110,10 @@ bool customerDriver(int connFD)
             case 4:
                 get_balance(connFD,clientData);
                 break;
+            case 5:
+
+                view_transections(connFD,clientData.username);
+                break;
             case 6:
                 change_password(connFD,CUSTR_TYPE,semIdentifier,clientData);
                 break;
@@ -184,6 +188,9 @@ bool applyLoan(int connFD,struct clientData clientData){
     int ammountToApply = atoi(readBuffer);
     loan.accountNumber=clientData.userid;
     loan.newBalance=ammountToApply;
+    loan.handleByEmpID=-1;
+    loan.approvedByEMP=-1;
+    strcpy(loan.nameEmployee,"No Assigned");
     strcpy(loan.custName,clientData.name);
     strcpy(loan.custLogID,clientData.username);
     loan.status=0;
@@ -312,7 +319,7 @@ bool deposit(int connFD,struct clientData clientData)
             if (depositAmount != 0)
             {
 
-                int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance + depositAmount, 1);
+                int newTransactionID = write_transaction_to_file(account.login,account.accountNumber, account.balance, account.balance + depositAmount, 1);
                 write_transaction_to_array(account.transactions, newTransactionID);
 
                 account.balance += depositAmount;
@@ -407,7 +414,7 @@ bool withdraw(int connFD,struct clientData clientData)
             if (withdrawAmount != 0 && account.balance - withdrawAmount >= 0)
             {
 
-                int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance - withdrawAmount, 0);
+                int newTransactionID = write_transaction_to_file(account.login,account.accountNumber, account.balance, account.balance - withdrawAmount, 0);
                 write_transaction_to_array(account.transactions, newTransactionID);
 
                 account.balance -= withdrawAmount;
@@ -536,14 +543,21 @@ void write_transaction_to_array(int *transactionArray, int ID)
     }
 }
 
-int write_transaction_to_file(int accountNumber, long int oldBalance, long int newBalance, bool operation)
+int write_transaction_to_file(char *name,int accountNumber, long int oldBalance, long int newBalance, bool operation)
 {
+    time_t currentTime;
+    struct tm *timeInfo;
+    time(&currentTime);
+    timeInfo = localtime(&currentTime);
     struct Transaction newTransaction;
     newTransaction.accountNumber = accountNumber;
     newTransaction.oldBalance = oldBalance;
     newTransaction.newBalance = newBalance;
     newTransaction.operation = operation;
-    newTransaction.transactionTime = time(NULL);
+   newTransaction.transferAcc=-1;
+       strcpy(newTransaction.loginID,name);
+    // newTransaction.transactionTime = time(NULL);
+    strftime(newTransaction.transactionTime, sizeof(newTransaction.transactionTime), "%Y-%m-%d %H:%M:%S", timeInfo);
 
     ssize_t readBytes, writeBytes;
 
@@ -574,14 +588,15 @@ int write_transaction_to_file(int accountNumber, long int oldBalance, long int n
 
 void get_customer_NAME(int connFD,struct clientData clientData){
     
-//     char buffer[100];  // Buffer to hold the string representation of the number
+    char buffer[1000];  // Buffer to hold the string representation of the number
 // long int depositAmount = 12345;
 
 // // Convert the long int to a string
-// sprintf(buffer, "--------------%d------------", clientData.userid);  // %ld formats it as long int
+strcpy(buffer,clientData.username);
+// sprintf(buffer, "--------------%s------------", clientData.username);  // %ld formats it as long int
 
 // // Now use write to print the string to STDOUT
-// write(STDOUT_FILENO, buffer, strlen(buffer));
+write(STDOUT_FILENO, buffer, strlen(buffer));
     get_customer_details(connFD,clientData.userid,clientData);
 }
 #endif

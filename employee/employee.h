@@ -1,11 +1,12 @@
 #ifndef EMPLOYEE_FUNCTIONS
 #define EMPLOYEE_FUNCTIONS
 
+#include "../resource/commanFun.h"
+#include "../admin/admin.h"
 #include "../resource/constantTerms.h"
 #include "../resource/employeeNeeds.h"
 #include "../recordStruct/structs.h"
 #include "../recordStruct/client_data.h"
-#include "../resource/commanFun.h"
 #include "../resource/set.h"
 #include "../resource/shFile.h"
 #include <sys/stat.h>  // For file mode constants like S_IRWXU
@@ -20,10 +21,9 @@
 // Function Prototypes =================================
 
 bool employee_operation_handler(int connFD);
-bool add_account(int connFD);
 bool view_employee_account(int connFD,int type,int range,char *str);
-int add_customer(int connFD);
-int add_employee(int connFD);
+bool View_account_trans(int connFD);
+
 // bool logout(int connFD)
 // bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer);
 
@@ -107,7 +107,7 @@ bool employee_operation_handler(int connFD)
                 add_customer(connFD);
                 break;
             case 2: 
-                 updateDetails(connFD, false);
+                updateDetails(connFD, false);
                 break;
             case 3:
                 // view_employee_account(connFD,1,-1,"");
@@ -116,7 +116,7 @@ bool employee_operation_handler(int connFD)
                 // add_employee(connFD);
                 break;
             case 5:
-                // delete_account(connFD,true);
+                View_account_trans(connFD);
                 break;
             case 6:
                 change_password(connFD,EMPLY_TYPE,semIdentifier,clientData);            
@@ -134,6 +134,18 @@ bool employee_operation_handler(int connFD)
     {
         return false;
     }
+    return true;
+}
+
+bool View_account_trans(int connFD){
+    char readBuffer[1000],writeBuffer[1000];
+    write(connFD,"Enter the Customer ID to print the Pass Book",strlen("Enter the Customer ID to print the Pass Book"));
+    int readBytes=read(connFD,readBuffer,sizeof(readBuffer));
+    if(readBytes==-1){
+        perror("Error while reading Input : ");
+        return false;
+    }
+    view_transections(connFD,readBuffer);
     return true;
 }
 

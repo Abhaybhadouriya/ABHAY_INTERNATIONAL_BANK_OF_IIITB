@@ -1,10 +1,10 @@
 #ifndef ADMIN_FUNCTIONS
 #define ADMIN_FUNCTIONS
 
+#include "../resource/commanFun.h"
 #include "../resource/constantTerms.h"
 #include "../recordStruct/structs.h"
 #include "../recordStruct/client_data.h"
-#include "../resource/commanFun.h"
 #include "../resource/set.h"
 #include "../resource/shFile.h"
 #include <sys/stat.h>  // For file mode constants like S_IRWXU
