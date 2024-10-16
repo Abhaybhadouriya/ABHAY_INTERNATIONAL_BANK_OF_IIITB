@@ -7,17 +7,20 @@
 #include <sys/socket.h> 
 #include <netinet/ip.h> 
 #include <string.h>    
+#include <stdbool.h>
+#include <arpa/inet.h>
+
 //================================ RESOURCES ================================
-#include "./resource/set.h"
-#include "./resource/shFile.h"
-#include "./resource/commanFun.h"
-#include "./resource/constantTerms.h"
-//================================ STRUCT__FUN ================================
+// #include "./resource/set.h"
+// #include "./resource/shFile.h"
+// #include "./resource/commanFun.h"
+// #include "./resource/constantTerms.h"
+// //================================ STRUCT__FUN ================================
 #include "./recordStruct/employee.h"
 #include "./recordStruct/account.h"
-#include "./recordStruct/loanapply.h"
-#include "./recordStruct/structs.h"
-#include "./recordStruct/transection.h"
+// #include "./recordStruct/loanapply.h"
+// #include "./recordStruct/structs.h"
+// #include "./recordStruct/transection.h"
 void connection_handler(int sockFD); // Handles the read & write operations to the server
 
 void main()
@@ -33,7 +36,9 @@ void main()
         _exit(0);
     }
 
-   
+   serverAddress.sin_family = AF_INET;
+serverAddress.sin_port = htons(8081); // Match with the server port
+serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); // Localhost
    connectStatus = connect(socketFileDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
     if (connectStatus == -1)
     {
@@ -49,7 +54,7 @@ void main()
 // Handles the read & write operations w the server
 void connection_handler(int sockFD)
 {
-    char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading from / writting to the server
+    char readBuffer[10000], writeBuffer[1000]; // A buffer used for reading from / writting to the server
     ssize_t readBytes, writeBytes;            // Number of bytes read from / written to the socket
     struct Employee employee;
     struct Account account;

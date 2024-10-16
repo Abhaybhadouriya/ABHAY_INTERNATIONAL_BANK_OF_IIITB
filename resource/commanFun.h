@@ -30,11 +30,13 @@
 
 bool get_account_details(int connFD, struct Account *customerAccount);
 bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer,struct clientData *clientData);
-bool get_customer_details(int connFD, int customerID,struct clientData clientData);
+// bool get_customer_details(int connFD, int customerID,struct clientData clientData);
+bool get_customer_details(int connFD, int customerID,char *name,int qType);
+
 bool view_transections(int connFD,char *str);
 char* getRole(int role);
 int get_last_number_of_loginID(char *input);
-bool view_employee_account(int connFD,int role,int range,char *str);
+bool view_employee_account(int connFD,int role,int range,char *str,struct Employee  (*emp)[100]);
 bool updateDetails(int connFD,bool isAdmin);
 bool logout(int connFD,char *str);
 bool printLoanListofUser(int connFD,char *str);
@@ -51,7 +53,7 @@ bool logout(int connFD,char *str){
 }
 
 
-bool view_employee_account(int connFD,int role,int range,char *str){
+bool view_employee_account(int connFD,int role,int range,char *str,struct Employee  (*emp)[100]){
      ssize_t readBytes, writeBytes;             // Number of bytes read from / written to the socket
     char readBuffer[1000], writeBuffer[10000]; // A buffer for reading from / writing to the socket
     char tempBuffer[1000];
@@ -145,21 +147,25 @@ bool view_employee_account(int connFD,int role,int range,char *str){
 
         lseek(customerFileDescriptor, 0, SEEK_SET); // Reset file pointer to the start of the file
         bzero(writeBuffer, sizeof(writeBuffer));
+        int count=0;
 
         for (off_t i = 0; i < offset; i += sizeof(struct Employee)) {
         
             ssize_t readBytes = read(customerFileDescriptor, &employee, sizeof(struct Employee));
-
             if (readBytes == sizeof(struct Employee)) {
                 if((int)employee.role==role){
-                sprintf(writeBuffer, "Empsloyee Details - \n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tRole : %s\n\n", employee.empID, employee.name, employee.gender, employee.age,employee.login,getRole(employee.role));
-            //    *printstr+=writeBuffer;
-                strcat(printstr, writeBuffer);}
+                 if(emp!=NULL)(*emp)[count]=employee;
+                    sprintf(writeBuffer, "Employee No - %d\n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tRole : %s\n\n", count,employee.empID, employee.name, employee.gender, employee.age,employee.login,getRole(employee.role));
+                //    *printstr+=writeBuffer;
+                    strcat(printstr, writeBuffer);
+                 count++;
+                }
             } else if (readBytes == 0) {
                 break;
             } else {
                 break;
             }
+           
         }
 
     }
@@ -173,12 +179,13 @@ bool view_employee_account(int connFD,int role,int range,char *str){
      
       }else{
     
-    sprintf(writeBuffer, "Empsloyee Details - \n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s", account.empID, account.name, account.gender, account.age,account.login);
+    sprintf(writeBuffer, "Employee Details - \n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s", account.empID, account.name, account.gender, account.age,account.login);
       }
     strcat(writeBuffer, "\n\nYou'll now be redirected to the main menu...^");
-
     writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     }else {
+    strcat(printstr, "^");
+
     writeBytes = write(connFD,printstr, strlen(printstr));
     }
     if (writeBytes == -1)
@@ -186,8 +193,8 @@ bool view_employee_account(int connFD,int role,int range,char *str){
         perror("Error writing Employee info to client!");
         return false;
     }
-    bzero(writeBuffer, sizeof(writeBuffer));
-    bzero(printstr,sizeof(printstr));
+    // bzero(writeBuffer, sizeof(writeBuffer));
+    // bzero(printstr,sizeof(printstr));
 
     // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     return true;
@@ -367,7 +374,7 @@ bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomerID,str
     return false;
 }
 
-bool get_customer_details(int connFD, int customerID,struct clientData clientData)
+bool get_customer_details(int connFD, int customerID,char *name,int qType)
 {
     ssize_t readBytes, writeBytes;             // Number of bytes read from / written to the socket
     char readBuffer[1000], writeBuffer[10000]; // A buffer for reading from / writing to the socket
@@ -402,7 +409,7 @@ bool get_customer_details(int connFD, int customerID,struct clientData clientDat
         write(STDOUT_FILENO,readBuffer,strlen(readBuffer));
         // printf("%d",customerID);
     }else{
-        strcpy(tempCustID,clientData.username);
+        strcpy(tempCustID,name);
         toSeek=customerID;
     }
     char buffer[100];
@@ -485,15 +492,37 @@ bool get_customer_details(int connFD, int customerID,struct clientData clientDat
 
     bzero(writeBuffer, sizeof(writeBuffer));
       if (strcmp(tempCustID, account.login) != 0){
-                write(STDOUT_FILENO, buffer, strlen(buffer));
+         //################################################
+         // if account found return true for fund transfer
+         //################################################
+            if(qType==1) {
+            write(connFD,"Beneficiary Account Not Found",strlen("Beneficiary Account Not Found"));
+            return false;
+         }
+              //################################################
+         // if account found return true for fund transfer
+         //################################################
+           
+        write(STDOUT_FILENO, buffer, strlen(buffer));
 
         strcpy(writeBuffer, CUSTOMER_ID_DOESNT_EXIT);
         strcat(writeBuffer, "^");
      
       }else{
+             //################################################
+         // if account found return true for fund transfer
+         //################################################
+          if(qType==1) {
+            write(connFD,"Beneficiary Account Found",strlen("Beneficiary Account Found"));
+            return true;
+         }
+              //################################################
+         // if account found return true for fund transfer
+         //################################################
     sprintf(writeBuffer, "Customer Details - \n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tBalance : %ld", account.accountNumber, account.name, account.gender, account.age,account.login,account.balance);
 
     strcat(writeBuffer, "\n\nYou'll now be redirected to the main menu...^");
+
 }
     writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     if (writeBytes == -1)
@@ -1450,7 +1479,8 @@ return true;
 }
 bool view_transections(int connFD,char *str){
     struct Transaction transaction;
-    char readBuffer[1000], writeBuffer[1000];
+    char readBuffer[1000], writeBuffer[10000];
+      char printstr[50000];
     ssize_t readBytes, writeBytes;
     time_t currentTime;
     struct tm *timeInfo;
@@ -1458,7 +1488,8 @@ bool view_transections(int connFD,char *str){
     timeInfo = localtime(&currentTime);
     int fileDesp = open(TRANSACTION_FILE,O_RDONLY);
     struct flock lock = {F_RDLCK, SEEK_SET, 0, 0, getpid()};
-
+     bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
     if (fileDesp == -1)
     {
         // Customer File doesn't exist
@@ -1519,12 +1550,12 @@ bool view_transections(int connFD,char *str){
         perror("Error while obtaining read lock on the Customer file!");
         return false;
     }
-    char printstr[10000];
-    // struct  Loanapply loanapps;
+  
     offset = lseek(fileDesp, 0, SEEK_END); 
 
     lseek(fileDesp, 0, SEEK_SET); 
     bzero(writeBuffer, sizeof(writeBuffer));
+    
     for (off_t i = 0; i < offset; i += sizeof(struct Transaction)) {
         
         ssize_t readBytes = read(fileDesp, &transaction, sizeof(struct Transaction));
@@ -1533,7 +1564,7 @@ bool view_transections(int connFD,char *str){
             
         if(strcmp(transaction.loginID,str)==0){
 
-            sprintf(writeBuffer, "Transection : \n\tTransection ID : %d\n\tAccount No : %d\n\tCustomer ID : %s\n\tTransection Type : %s\n\tOld Balance : %ld\n\tNew Balance L %ld\n\tTime : %s\n",transaction.transactionID,transaction.accountNumber,transaction.loginID,(transaction.operation==0?"Withdraw":transaction.operation==1?"Deposit":"Transfer"),transaction.oldBalance,transaction.newBalance,transaction.transactionTime);
+            sprintf(writeBuffer, "Transection : \n\tTransection ID : %d\n\tAccount No : %d\n\tCustomer ID : %s\n\tTransection Type : %s\n\tOld Balance : %ld\n\tNew Balance L %ld\n\tTime : %s\n",transaction.transactionID,transaction.accountNumber,transaction.loginID,(transaction.operation==TRANSACTION_TYPE_WITHDRAW?"Withdraw":transaction.operation==TRANSACTION_TYPE_DEPOSIT?"Deposit":"Transfer"),transaction.oldBalance,transaction.newBalance,transaction.transactionTime);
             strcat(printstr, writeBuffer);
         }
             }else  if (readBytes == 0) {
@@ -1547,16 +1578,16 @@ bool view_transections(int connFD,char *str){
    
     writeBytes = write(connFD,printstr, strlen(printstr));
     
+    bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
     if (writeBytes == -1)
     {
         perror("Error writing Transection info to client!");
         return false;
     }
-    bzero(writeBuffer, sizeof(writeBuffer));
-    bzero(printstr,sizeof(printstr));
 
     // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-
+    close(fileDesp);
 
 
 return true;

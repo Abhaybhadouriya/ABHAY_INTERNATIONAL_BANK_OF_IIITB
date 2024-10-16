@@ -18,10 +18,10 @@
 
 
 // Function Prototypes =================================
-void assingLoanHandler(int connFD,struct Loanapply);
+// void assingLoanHandler(int connFD,struct Loanapply);
 bool manager_operation_handler(int connFD);
 bool add_account(int connFD);
-bool view_employee_account(int connFD,int type,int range,char *str);
+// bool view_employee_account(int connFD,int type,int range,char *str);
 int add_customer(int connFD);
 int add_employee(int connFD);
 bool view_feedback(int connFD);
@@ -343,7 +343,7 @@ bool  assignLoans(int connFD,struct clientData clientData) {
         }
        lock.l_type = F_UNLCK;
     fcntl(customerFileDescriptor, F_SETLK, &lock);
-   
+    
     writeBytes = write(connFD,printstr, strlen(printstr));
     
     if (writeBytes == -1)
@@ -351,34 +351,58 @@ bool  assignLoans(int connFD,struct clientData clientData) {
         perror("Error writing Loan info to client!");
         return false;
     }
-    bzero(writeBuffer, sizeof(writeBuffer));
-    bzero(printstr,sizeof(printstr));
-    writeBytes = write(connFD,"Enter the Loan ID your want to Assign to an Employee", strlen(printstr));
+    // bzero(writeBuffer, sizeof(writeBuffer));
+    // bzero(printstr,sizeof(printstr));
+    writeBytes = write(connFD,"Enter the Loan ID your want to Assign to an Employee\n", strlen("Enter the Loan ID your want to Assign to an Employee\n"));
     
     if (writeBytes == -1)
     {
         perror("Error writing Loan info to client!");
         return false;
     }
-    bzero(readBuffer,sizeof(readBuffer));
-    readBytes = read(connFD,readBuffer,sizeof(readBuffer));
-    if(atoi(readBuffer)<0&&atoi(readBuffer)>255){
+      bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD,&readBuffer, sizeof(readBuffer));
+        if (readBytes == -1)
+            perror("Error while reading from client");
+        else if (readBytes == 0){
+          
+            printf("No data was sent by the client ");
+            }
+    if(atoi(readBuffer)==0){
         write(connFD,"INVALID INPUT",strlen("INVALID INPUT"));
         return true;
     }
-    assingLoanHandler(connFD,loanarray[atoi(readBuffer)]);
-    bzero(readBuffer,sizeof(readBuffer));
+//     assingLoanHandler(connFD,loanarray[atoi(readBuffer)]);
 
+    
+//     // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
 
-    // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+// return true;
+// }
+// void assingLoanHandler(int connFD,struct Loanapply Loanapply){
+//      char writeBuffer[1000],readBuffer[1000];
+  strcat(writeBuffer, "\n");
 
-return true;
-}
-void assingLoanHandler(int connFD,struct Loanapply Loanapply){
-     char writeBuffer[1000],readBuffer[1000];
-     write(connFD,"List of Employee",strlen("List of Employee"));
-     view_employee_account(connFD,0,-1,"");
+    strcat(writeBuffer, "List of Employee^");
+    writeBytes= write(connFD,writeBuffer,strlen(writeBuffer));
+      
+    if (writeBytes == -1)
+    {
+        perror("Error writing Loan info to client!");
+        return false;
+    }
+    read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+     struct Employee emp[100];
+     view_employee_account(connFD,1,-1,"",&emp);
      write(connFD,"Enter the Employee ID you want to Assign the loan",strlen("Enter the Employee ID you want to Assign the loan"));
+
+    bzero(readBuffer,sizeof(readBuffer));
+     read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+      bzero(readBuffer,sizeof(readBuffer));
+     read(connFD, &readBuffer, sizeof(readBuffer)); // Dummy read
+     
+     return true;
+
 }
 
 

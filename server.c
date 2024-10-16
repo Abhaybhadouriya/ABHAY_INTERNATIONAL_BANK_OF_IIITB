@@ -6,6 +6,7 @@
 #include <sys/types.h>  
 #include <sys/socket.h> 
 #include <netinet/ip.h> 
+#include <arpa/inet.h>
 
 #include <string.h>  
 #include <stdbool.h> 
@@ -60,7 +61,7 @@ void main()
 
     serverAddress.sin_family = AF_INET;                // IPv4
     serverAddress.sin_port = htons(8081);              // Server will listen to port 8080
-    serverAddress.sin_addr.s_addr = htonl(INADDR_ANY); // Binds the socket to all interfaces
+serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); // Localhost
 
     socketBindStatus = bind(socketFileDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
     if (socketBindStatus == -1)

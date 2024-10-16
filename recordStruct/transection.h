@@ -5,7 +5,7 @@ struct Transaction
 {   char loginID[30];
     int transactionID; 
     int accountNumber;
-    int operation; // 0 -> Withdraw, 1 -> Deposit,2 -> Transfer
+    int operation; // 1 -> Withdraw, 2 -> Deposit,3 -> Transfer
     int transferAcc;
     long int oldBalance;
     long int newBalance;

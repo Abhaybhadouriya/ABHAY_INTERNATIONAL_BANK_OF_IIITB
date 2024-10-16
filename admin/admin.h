@@ -15,7 +15,7 @@
 
 bool admin_operation_handler(int connFD);
 bool add_account(int connFD);
-bool view_employee_account(int connFD,int type,int range,char *str);
+// bool view_employee_account(int connFD,int type,int range,char *str);
 int add_customer(int connFD);
 int add_employee(int connFD);
 bool updateAdminPassword(int connFD) ;
@@ -62,7 +62,9 @@ bool admin_operation_handler(int connFD)
             switch (choice)
             {
             case 1:
-                get_customer_details(connFD, -1,clientData);
+                // get_customer_details(connFD, -1,clientData);
+                get_customer_details(connFD, -1,NULL,0);
+
                 break;
             case 2:
                 add_customer(connFD);
@@ -71,7 +73,7 @@ bool admin_operation_handler(int connFD)
                 updateDetails(connFD, true);
                 break;
             case 4:
-                view_employee_account(connFD,1,-1,"");
+                view_employee_account(connFD,1,-1,"",NULL);
                 break;
             case 5:
                 add_employee(connFD);
@@ -80,7 +82,7 @@ bool admin_operation_handler(int connFD)
                 delete_account(connFD,true);
                 break;
             case 7:
-                view_employee_account(connFD,0,-1,"");
+                view_employee_account(connFD,0,-1,"",NULL);
             
                 break;
             case 8:

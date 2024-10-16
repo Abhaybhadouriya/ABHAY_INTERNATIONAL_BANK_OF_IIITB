@@ -19,15 +19,16 @@
 bool customerDriver(int connFD);
 
 void get_customer_NAME(int connFD,struct clientData clientData);
-bool deposit(int connFD,struct clientData clientData);
-bool withdraw(int connFD,struct clientData clientData);
+bool deposit(int connFD,char *uname,int amount,int typeofTrans);
+bool withdraw(int connFD,char *uname,int amount,int typeofTrans);
 bool get_balance(int connFD,struct clientData clientData);
 bool lock_critical_section(struct sembuf *semOp);
 bool unlock_critical_section(struct sembuf *semOp);
 void write_transaction_to_array(int *transactionArray, int ID);
-int write_transaction_to_file(char *name,int accountNumber, long int oldBalance, long int newBalance, bool operation);
+int write_transaction_to_file(char *name,int accountNumber, long int oldBalance, long int newBalance, int operation);
 bool addFeedback(int connFD, struct clientData clientData);
 bool applyLoan(int connFD,struct clientData clientData);
+bool transferFund(int connFD,char *username,int type);
 int semIdentifier;
 
 
@@ -78,6 +79,8 @@ bool customerDriver(int connFD)
         strcpy(writeBuffer, CUSTOMER_LOGIN_WELCOME);
         while (1)
         {
+            bzero(writeBuffer, sizeof(writeBuffer));
+            bzero(readBuffer, sizeof(readBuffer));
             strcat(writeBuffer, "\n");
             strcat(writeBuffer, CUSTOMER_MENU);
             writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
@@ -86,7 +89,7 @@ bool customerDriver(int connFD)
                 perror("Error while writing ADMIN_MENU to client!");
                 return false;
             }
-            bzero(writeBuffer, sizeof(writeBuffer));
+          
 
             readBytes = read(connFD, readBuffer, sizeof(readBuffer));
             if (readBytes == -1)
@@ -94,6 +97,7 @@ bool customerDriver(int connFD)
                 perror("Error while reading client's choice for ADMIN_MENU");
                 return false;
             }
+            bzero(writeBuffer, sizeof(writeBuffer));
 
             int choice = atoi(readBuffer);
             switch (choice)
@@ -102,10 +106,10 @@ bool customerDriver(int connFD)
                 get_customer_NAME(connFD, clientData);
                 break;
             case 2:
-                deposit(connFD,clientData);
+                deposit(connFD,clientData.username,0,TRANSACTION_TYPE_DEPOSIT);
                 break;
             case 3:
-                withdraw(connFD,clientData);
+                withdraw(connFD,clientData.username,0,TRANSACTION_TYPE_WITHDRAW);
                 break;
             case 4:
                 get_balance(connFD,clientData);
@@ -116,6 +120,9 @@ bool customerDriver(int connFD)
                 break;
             case 6:
                 change_password(connFD,CUSTR_TYPE,semIdentifier,clientData);
+                break;
+            case 7:
+                transferFund(connFD,clientData.username,3);
                 break;
             case 8:
                 addFeedback(connFD,clientData);
@@ -138,6 +145,52 @@ bool customerDriver(int connFD)
     }
     return true;
 }
+bool transferFund(int connFD,char *username,int type)
+{
+    char readBuffer[1000], writeBuffer[1000],tempCustID[1000],tempCustnameToTransfer[1000];
+    ssize_t writeBytes,readBytes;
+    writeBytes= write(connFD,"Enter the Customer ID To Transfer the Fund\n",strlen("Enter the Customer ID To Transfer the Fund\n"));
+    if(writeBytes==-1){
+        perror("Error while writing the Get ID message to Client");
+        return false;
+    }
+    bzero(readBuffer,sizeof(readBuffer));
+    readBytes=read(connFD,readBuffer,sizeof(readBuffer));
+    if (readBytes == -1)
+    {
+        perror("Error reading LOAM MESSAGE from client!");
+        return false;
+    }
+      strcpy(tempCustID, readBuffer);
+    if(!get_customer_details(connFD,get_last_number_of_loginID(tempCustID),readBuffer,1)) return false;
+     writeBytes= write(connFD,"\nEnter the amount you want to transfer\n",strlen("\nEnter the amount you want to transfer\n"));
+    if(writeBytes==-1){
+        perror("Error while writing the Get ID message to Client");
+        return false;
+    }
+    strcpy(tempCustnameToTransfer,readBuffer);
+    bzero(readBuffer,sizeof(readBuffer));
+    readBytes=read(connFD,readBuffer,sizeof(readBuffer));
+    if (readBytes == -1)
+    {
+        perror("Error reading LOAM MESSAGE from client!");
+        return false;
+    }
+    if(atoi(readBuffer)==0){
+          writeBytes= write(connFD,"Invalid Amount\n",strlen("Invalid Amount\n"));
+            if(writeBytes==-1){
+                 perror("Error while writing the Get ID message to Client");
+             return false;
+             }
+             return true;
+    }
+    int amount = atoi(readBuffer);
+    withdraw(connFD,username,amount,TRANSACTION_TYPE_TRANSFER);
+    deposit(connFD,tempCustnameToTransfer,amount,TRANSACTION_TYPE_TRANSFER);
+    return true;
+
+}
+
 bool applyLoan(int connFD,struct clientData clientData){
     struct Loanapply loan,prevLoan;
      char readBuffer[1000], writeBuffer[1000];
@@ -278,13 +331,14 @@ bool addFeedback(int connFD, struct clientData clientData){
 
 
 }
-bool deposit(int connFD,struct clientData clientData)
+bool deposit(int connFD,char *uname,int amount,int typeofTrans)
 {
-    char readBuffer[1000], writeBuffer[1000];
+    char readBuffer[1000], writeBuffer[1000],tempBuffer[1000];
     ssize_t readBytes, writeBytes;
 
     struct Account account;
-    account.accountNumber = get_last_number_of_loginID(clientData.username);
+    strcpy(tempBuffer, uname);
+    account.accountNumber = get_last_number_of_loginID(tempBuffer);
 
     int depositAmount = 0;
 
@@ -297,7 +351,7 @@ bool deposit(int connFD,struct clientData clientData)
         // write(STDOUT_FILENO,account.name,strlen(account.name));
         if (account.active)
         {
-
+            if(amount==0){
             writeBytes = write(connFD, DEPOSIT_AMOUNT, strlen(DEPOSIT_AMOUNT));
             if (writeBytes == -1)
             {
@@ -315,11 +369,14 @@ bool deposit(int connFD,struct clientData clientData)
                 return false;
             }
             depositAmount = atoi(readBuffer);
- 
+            }else{
+                depositAmount=amount;
+            }
+
             if (depositAmount != 0)
             {
 
-                int newTransactionID = write_transaction_to_file(account.login,account.accountNumber, account.balance, account.balance + depositAmount, 1);
+                int newTransactionID = write_transaction_to_file(account.login,account.accountNumber, account.balance, account.balance + depositAmount, typeofTrans);
                 write_transaction_to_array(account.transactions, newTransactionID);
 
                 account.balance += depositAmount;
@@ -373,13 +430,15 @@ bool deposit(int connFD,struct clientData clientData)
     }
 }
 
-bool withdraw(int connFD,struct clientData clientData)
+bool withdraw(int connFD,char *uname,int amount,int typeofTrans)
 {
-    char readBuffer[1000], writeBuffer[1000];
+    char readBuffer[1000], writeBuffer[1000],tempBuffer[1000];
     ssize_t readBytes, writeBytes;
 
     struct Account account;
-    account.accountNumber = get_last_number_of_loginID(clientData.username);
+    strcpy(tempBuffer, uname);
+    account.accountNumber = get_last_number_of_loginID(tempBuffer);
+
 
     long int withdrawAmount = 0;
 
@@ -391,7 +450,7 @@ bool withdraw(int connFD,struct clientData clientData)
     {
         if (account.active)
         {
-
+            if(amount==0){
             writeBytes = write(connFD, WITHDRAW_AMOUNT, strlen(WITHDRAW_AMOUNT));
             if (writeBytes == -1)
             {
@@ -410,11 +469,14 @@ bool withdraw(int connFD,struct clientData clientData)
             }
 
             withdrawAmount = atol(readBuffer);
+            }else{
+                withdrawAmount=amount;
+            }
 
             if (withdrawAmount != 0 && account.balance - withdrawAmount >= 0)
             {
 
-                int newTransactionID = write_transaction_to_file(account.login,account.accountNumber, account.balance, account.balance - withdrawAmount, 0);
+                int newTransactionID = write_transaction_to_file(account.login,account.accountNumber, account.balance, account.balance - withdrawAmount, typeofTrans);
                 write_transaction_to_array(account.transactions, newTransactionID);
 
                 account.balance -= withdrawAmount;
@@ -543,7 +605,7 @@ void write_transaction_to_array(int *transactionArray, int ID)
     }
 }
 
-int write_transaction_to_file(char *name,int accountNumber, long int oldBalance, long int newBalance, bool operation)
+int write_transaction_to_file(char *name,int accountNumber, long int oldBalance, long int newBalance, int operation)
 {
     time_t currentTime;
     struct tm *timeInfo;
@@ -597,6 +659,6 @@ strcpy(buffer,clientData.username);
 
 // // Now use write to print the string to STDOUT
 write(STDOUT_FILENO, buffer, strlen(buffer));
-    get_customer_details(connFD,clientData.userid,clientData);
+    get_customer_details(connFD,clientData.userid,clientData.username,0);
 }
 #endif

@@ -21,7 +21,7 @@
 // Function Prototypes =================================
 
 bool employee_operation_handler(int connFD);
-bool view_employee_account(int connFD,int type,int range,char *str);
+// bool view_employee_account(int connFD,int type,int range,char *str);
 bool View_account_trans(int connFD);
 
 // bool logout(int connFD)
@@ -43,13 +43,6 @@ bool employee_operation_handler(int connFD)
     {
         ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
         char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading & writing to the client
-
-
-
-
-
-
-
        
         key_t semKey = ftok(ACCOUNT_FILE, clientData.userid); 
         union semun

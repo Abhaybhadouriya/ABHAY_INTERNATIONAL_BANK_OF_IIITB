@@ -200,4 +200,9 @@
 #define ADMIN_TYPE 1
 #define CUSTR_TYPE 2
 #define EMPLY_TYPE 3
+
+//------------Type Transections
+#define TRANSACTION_TYPE_WITHDRAW 1
+#define TRANSACTION_TYPE_DEPOSIT 2
+#define TRANSACTION_TYPE_TRANSFER 3
 #endif
