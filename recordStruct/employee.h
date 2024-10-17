@@ -12,7 +12,6 @@ struct Employee
     char password[30];
     int empID;     // 0, 1, 2, ....
     int role; //0 -> manager 1->employee
-    // bool isRegularAccount; // 1 -> Regular account, 0 -> Joint account
     int active;           // 1 -> Active, 0 -> Deactivated (Deleted)
   
 };
