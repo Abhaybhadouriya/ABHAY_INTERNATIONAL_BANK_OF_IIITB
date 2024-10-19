@@ -22,7 +22,7 @@
 // #include "./recordStruct/structs.h"
 // #include "./recordStruct/transection.h"
 void connection_handler(int sockFD); // Handles the read & write operations to the server
-
+void printErrorMessage();
 void main()
 {
     int socketFileDescriptor, connectStatus;
@@ -54,7 +54,7 @@ serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); // Localhost
 // Handles the read & write operations w the server
 void connection_handler(int sockFD)
 {
-    char readBuffer[10000], writeBuffer[1000]; // A buffer used for reading from / writting to the server
+    char readBuffer[50000], writeBuffer[1000]; // A buffer used for reading from / writting to the server
     ssize_t readBytes, writeBytes;            // Number of bytes read from / written to the socket
     struct Employee employee;
     struct Account account;
@@ -98,8 +98,25 @@ void connection_handler(int sockFD)
                 strcpy(writeBuffer, getpass(readBuffer));
             else
             {
-                printf("%s\n", readBuffer);
-                scanf("%[^\n]%*c", writeBuffer); // Take user input!
+                  printf("%s\n", readBuffer);
+                // fflush(stdin);
+                // do{
+              
+               int inputResult = scanf("%[^\n]%*c", writeBuffer); // Take user input!
+                // if (inputResult == 0) {
+            // Clear the newline or any garbage left in stdin when user presses Enter without typing anything
+        //     int ch;
+        //     while ((ch = getchar()) != '\n' && ch != EOF);
+        //     printf("\n\n");
+        //     printErrorMessage();
+        //     printf("\n\n");
+        // }  
+                //  } while(strlen(writeBuffer)==0);
+
+                        bzero(readBuffer, sizeof(readBuffer)); // Empty the read buffer
+
+
+              
             }
 
             writeBytes = write(sockFD, writeBuffer, strlen(writeBuffer));
@@ -113,4 +130,13 @@ void connection_handler(int sockFD)
     } while (readBytes > 0);
 
     close(sockFD);
+}
+
+
+void printErrorMessage() {
+    printf("#############################################################\n");
+    printf("##                                                         ##\n");
+    printf("##       Input cannot be empty! Please try again.          ##\n");
+    printf("##                                                         ##\n");
+    printf("#############################################################\n");
 }

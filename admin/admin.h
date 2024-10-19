@@ -73,7 +73,7 @@ bool admin_operation_handler(int connFD)
                 updateDetails(connFD, true);
                 break;
             case 4:
-                view_employee_account(connFD,1,-1,"",NULL);
+                view_employee_account(connFD,1,-1,"",NULL,0,0);
                 break;
             case 5:
                 add_employee(connFD);
@@ -82,7 +82,7 @@ bool admin_operation_handler(int connFD)
                 delete_account(connFD,true);
                 break;
             case 7:
-                view_employee_account(connFD,0,-1,"",NULL);
+                view_employee_account(connFD,0,-1,"",NULL,0,0);
             
                 break;
             case 8:
@@ -94,7 +94,7 @@ bool admin_operation_handler(int connFD)
                 break;
             default:
                 write(connFD,"Invalid Input",strlen("Invalid Input"));
-                return true;
+                // return true;
             }
         }
     }
@@ -178,12 +178,14 @@ bool updateAdminPassword(int connFD) {
             perror("Error writing success message to client");
             return false;
         }
+        
 
         return true;  // Success
     } else {
         write(connFD, "Passwords do not match!\n", strlen("Passwords do not match!\n"));
         return false;  // Passwords didn't match
     }
+
 }
 
 int add_customer(int connFD)

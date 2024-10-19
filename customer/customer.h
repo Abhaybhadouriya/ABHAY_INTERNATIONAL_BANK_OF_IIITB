@@ -251,30 +251,83 @@ bool applyLoan(int connFD,struct clientData clientData){
 
     //#########################3 FILE LOCKING
 
-    int customerFileDescriptor = open(LOAN_FILE, O_CREAT | O_APPEND | O_WRONLY, S_IRWXU);
-    struct flock lock;
-    lock.l_type = F_WRLCK;  // Write lock
-    lock.l_whence = SEEK_SET;
-    lock.l_start = 0;       // Start of the file
-    lock.l_len = 0;         // 0 means "until EOF" (entire file)
-    lock.l_pid = getpid(); 
+    // int customerFileDescriptor = open(LOAN_FILE, O_CREAT | O_APPEND | O_WRONLY, S_IRWXU);
+    // struct flock lock;
+    // lock.l_type = F_WRLCK;  // Write lock
+    // lock.l_whence = SEEK_SET;
+    // lock.l_start = 0;       // Start of the file
+    // lock.l_len = 0;         // 0 means "until EOF" (entire file)
+    // lock.l_pid = getpid(); 
     
-   
-    ssize_t bytesWritten = write(customerFileDescriptor, &loan, sizeof(loan));
-    if (bytesWritten == -1) {
-        perror("Error writing to file");
-        close(customerFileDescriptor);
-        return 1;
-    }
-    lock.l_type = F_UNLCK;
-    if (fcntl(customerFileDescriptor, F_SETLK, &lock) == -1) {
-        perror("Error unlocking file");
-    }
-    close(customerFileDescriptor);
-    write(connFD,"Loan Request is Sent to the bank!",strlen("Loan Request is Sent to the bank!"));
-    return true;
     
+    // ssize_t bytesWritten = write(customerFileDescriptor, &loan, sizeof(loan));
+    // if (bytesWritten == -1) {
+    //     perror("Error writing to file");
+    //     close(customerFileDescriptor);
+    //     return 1;
+    // }
+    // lock.l_type = F_UNLCK;
+    // if (fcntl(customerFileDescriptor, F_SETLK, &lock) == -1) {
+    //     perror("Error unlocking file");
+    // }
+    // close(customerFileDescriptor);
+    // write(connFD,"Loan Request is Sent to the bank!",strlen("Loan Request is Sent to the bank!"));
+    // return true;
+    int loanFileDescriptor = open(LOAN_FILE, O_RDONLY);
+    if (loanFileDescriptor == -1 && errno == ENOENT)
+    {
+        // Customer file was never created
+        loan.loanid=0;
+    }
+    else if (loanFileDescriptor == -1)
+    {
+        perror("Error while opening customer file");
+        return -1;
+    }else{
+        int offset = lseek(loanFileDescriptor, -sizeof(struct Loanapply), SEEK_END);
+        if (offset == -1)
+        {
+            perror("Error seeking to last Customer record!");
+            return false;
+        }
 
+        struct flock lock = {F_RDLCK, SEEK_SET, offset, sizeof(struct Loanapply), getpid()};
+        int lockingStatus = fcntl(loanFileDescriptor, F_SETLKW, &lock);
+        if (lockingStatus == -1)
+        {
+            perror("Error obtaining read lock on Customer record!");
+            return false;
+        }
+        struct Loanapply previousloan;
+        readBytes = read(loanFileDescriptor, &previousloan, sizeof(struct Loanapply));
+        if (readBytes == -1)
+        {
+            perror("Error while reading Customer record from file!");
+            return false;
+        }
+
+        lock.l_type = F_UNLCK;
+        fcntl(loanFileDescriptor, F_SETLK, &lock);
+
+        close(loanFileDescriptor);
+        loan.loanid=previousloan.loanid+1;
+    }
+    loanFileDescriptor = open(LOAN_FILE, O_CREAT | O_APPEND | O_WRONLY, S_IRWXU);
+    if (loanFileDescriptor == -1)
+    {
+        perror("Error while creating / opening customer file!");
+        return false;
+    }
+    writeBytes = write(loanFileDescriptor, &loan, sizeof(loan));
+    if (writeBytes == -1)
+    {
+        perror("Error while writing Customer record to file!");
+        return false;
+    }
+
+    close(loanFileDescriptor);
+    
+    return true;
 }
 bool addFeedback(int connFD, struct clientData clientData){
     struct CustomerFeedback CustomerFeedback,prevCustomerFeedback;

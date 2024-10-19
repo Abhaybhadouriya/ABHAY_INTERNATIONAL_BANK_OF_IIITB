@@ -114,7 +114,7 @@ void connection_handler(int connectionFileDescriptor)
     char readBuffer[1000], writeBuffer[1000];
     ssize_t readBytes, writeBytes;
     int userChoice;
-
+    while(1){
     writeBytes = write(connectionFileDescriptor, INITIAL_PROMPT, strlen(INITIAL_PROMPT));
     if (writeBytes == -1)
         perror("Error while sending first prompt to the user!");
@@ -130,31 +130,46 @@ void connection_handler(int connectionFileDescriptor)
             }
         else
         {
-            userChoice = atoi(readBuffer);
-            switch (userChoice)
+              readBuffer[strcspn(readBuffer, "\n")] = 0;
+           
+            if (strlen(readBuffer) == 0)
             {
-            case 1:
-                // Admin
-                admin_operation_handler(connectionFileDescriptor);
-                break;
-            case 2:
-                // Customer
-                customerDriver(connectionFileDescriptor);
-                break;
-             case 3:
-                // Manager
-                manager_operation_handler(connectionFileDescriptor);
-                break;
-             case 4:
-                // Employee
-                employee_operation_handler(connectionFileDescriptor);
-                break;
-            default:
-                // Exit
-                break;
+                // If the input is empty, handle it (e.g., send back a prompt or message)
+                writeBytes = write(connectionFileDescriptor, "Input cannot be empty. Try again:\n", strlen("Input cannot be empty. Try again:\n"));
+                if (writeBytes == -1)
+                    perror("Error while sending message to the client");
+            }
+            else
+                {
+                userChoice = atoi(readBuffer);
+                switch (userChoice)
+                {
+                case 1:
+                    // Admin
+                    if(!admin_operation_handler(connectionFileDescriptor)) goto get_out;
+                    break;
+                case 2:
+                    // Customer
+                     if(!customerDriver(connectionFileDescriptor)) goto get_out;
+                    break;
+                case 3:
+                    // Manager
+                     if(!manager_operation_handler(connectionFileDescriptor)) goto get_out;
+                    break;
+                case 4:
+                    // Employee
+                     if(!employee_operation_handler(connectionFileDescriptor)) goto get_out;
+                    break;
+                default:
+                    // Exit
+                      writeBytes = write(connectionFileDescriptor, "Invalid Input. Try again:\n", strlen("Invalid Input. Try again:\n"));
+                    break;
+                }
             }
         }
     }
+    }
+    get_out:
     printf("Terminating connection to client!\n");
     (*total_clients)--;
     char message[50];

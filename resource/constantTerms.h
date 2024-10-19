@@ -122,7 +122,15 @@
 // ====================================================
 
 //EMPLOYEE
-#define EMPLOYEE_MENU "Hello Employee\n\t1. Add Customer\n\t2. Modify Customer Detials\n\t3. Approve/Reject Loans\n\t4. View assigned Loans\n\t5. Customer Transections\n\t6. Change Password\n\t7. Logout\n"
+#define EMPLOYEE_MENU "Hello Employee\n\t"\
+                      "1. Add Customer\n\t"\
+                      "2. Modify Customer Detials\n\t"\
+                      "3. Process Assigned Loan\n\t"\
+                      "4. Approve/Reject Loans\n\t"\
+                      "5. View assigned Loans\n\t"\
+                      "6. Customer Transections\n\t"\
+                      "7. Change Password\n\t"\
+                      "8. Logout\n"
 #define MENU_ADD_NEW_CUSTOMER "Add New Customer"
 #define MENU_MODIFY_CUSTOMER_DETAILS "Modify Customer Details"
 #define MENU_PROCESS_LOAN_APPLICATIONS "Process Loan Applications"
@@ -153,7 +161,7 @@
 #define CUSTOMER_LOGOUT "Logging you out now dear customer! Good bye!$"
 
 // ADMIN MENU
-#define CUSTOMER_MENU "1. Get Customer Details\n2. Deposit Money\n3. Withdraw Money\n4. Get Balance\n5. Get Transaction information\n6. Change Password\n7. Transfer Money\n8. Add FeedBack\n9 Apply Loan\n10. Logout\nPress any other key to logout"
+#define CUSTOMER_MENU "1. Get Customer Details\n2. Deposit Money\n3. Withdraw Money\n4. Get Balance\n5. Get Transaction information\n6. Change Password\n7. Transfer Money\n8. Add FeedBack\n9 Apply Loan\n10. Logout"
 
 #define ACCOUNT_DEACTIVATED "It seems your account has been deactivated!^"
 
@@ -205,4 +213,5 @@
 #define TRANSACTION_TYPE_WITHDRAW 1
 #define TRANSACTION_TYPE_DEPOSIT 2
 #define TRANSACTION_TYPE_TRANSFER 3
+#define TRANSACTION_TYPE_LOANCREDIT 4
 #endif

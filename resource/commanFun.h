@@ -36,7 +36,7 @@ bool get_customer_details(int connFD, int customerID,char *name,int qType);
 bool view_transections(int connFD,char *str);
 char* getRole(int role);
 int get_last_number_of_loginID(char *input);
-bool view_employee_account(int connFD,int role,int range,char *str,struct Employee  (*emp)[100]);
+bool view_employee_account(int connFD,int role,int range,char *str,struct Employee  (*emp)[100],int reqType,int *count);
 bool updateDetails(int connFD,bool isAdmin);
 bool logout(int connFD,char *str);
 bool printLoanListofUser(int connFD,char *str);
@@ -53,7 +53,7 @@ bool logout(int connFD,char *str){
 }
 
 
-bool view_employee_account(int connFD,int role,int range,char *str,struct Employee  (*emp)[100]){
+bool view_employee_account(int connFD,int role,int range,char *str,struct Employee  (*emp)[100],int reqType,int *count){
      ssize_t readBytes, writeBytes;             // Number of bytes read from / written to the socket
     char readBuffer[1000], writeBuffer[10000]; // A buffer for reading from / writing to the socket
     char tempBuffer[1000];
@@ -132,7 +132,7 @@ bool view_employee_account(int connFD,int role,int range,char *str,struct Employ
         perror("Error while obtaining read lock on the Customer file!");
         return false;
     }
-    char printstr[10000];
+    char printstr[50000];
     if(range!=-1){
     readBytes = read(customerFileDescriptor, &account, sizeof(struct Employee));
     
@@ -147,18 +147,22 @@ bool view_employee_account(int connFD,int role,int range,char *str,struct Employ
 
         lseek(customerFileDescriptor, 0, SEEK_SET); // Reset file pointer to the start of the file
         bzero(writeBuffer, sizeof(writeBuffer));
-        int count=0;
-
+        // when requested by manager;
+        // int count=0;
+        // int typeCount=0;
         for (off_t i = 0; i < offset; i += sizeof(struct Employee)) {
         
             ssize_t readBytes = read(customerFileDescriptor, &employee, sizeof(struct Employee));
             if (readBytes == sizeof(struct Employee)) {
                 if((int)employee.role==role){
-                 if(emp!=NULL)(*emp)[count]=employee;
-                    sprintf(writeBuffer, "Employee No - %d\n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tRole : %s\n\n", count,employee.empID, employee.name, employee.gender, employee.age,employee.login,getRole(employee.role));
+
+                 if(reqType==1){
+                    if(emp!=NULL)(*emp)[*count]=employee;
+                 (*count)++;}
+                    sprintf(writeBuffer, "Employee - \n\tID : %d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tRole : %s\n\n", employee.empID, employee.name, employee.gender, employee.age,employee.login,getRole(employee.role));
                 //    *printstr+=writeBuffer;
                     strcat(printstr, writeBuffer);
-                 count++;
+                 
                 }
             } else if (readBytes == 0) {
                 break;
@@ -171,6 +175,10 @@ bool view_employee_account(int connFD,int role,int range,char *str,struct Employ
     }
     lock.l_type = F_UNLCK;
     fcntl(customerFileDescriptor, F_SETLK, &lock);
+
+    if(reqType==1){
+        return true;
+    }
     if(range !=-1){
     bzero(writeBuffer, sizeof(writeBuffer));
       if (strcmp(tempCustID, account.login) != 0){
@@ -184,7 +192,6 @@ bool view_employee_account(int connFD,int role,int range,char *str,struct Employ
     strcat(writeBuffer, "\n\nYou'll now be redirected to the main menu...^");
     writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     }else {
-    strcat(printstr, "^");
 
     writeBytes = write(connFD,printstr, strlen(printstr));
     }
@@ -193,8 +200,8 @@ bool view_employee_account(int connFD,int role,int range,char *str,struct Employ
         perror("Error writing Employee info to client!");
         return false;
     }
-    // bzero(writeBuffer, sizeof(writeBuffer));
-    // bzero(printstr,sizeof(printstr));
+    bzero(writeBuffer, sizeof(writeBuffer));
+    bzero(printstr,sizeof(printstr));
 
     // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     return true;
@@ -1190,7 +1197,7 @@ bool get_account_details(int connFD, struct Account *customerAccount)
 
     return true;
 }
-
+ 
 
 bool change_password(int connFD,int type,int semIdentifier,struct clientData clientData)
 {
@@ -1363,7 +1370,7 @@ close(customerFileDescriptor);
 }
 bool printLoanListofUser(int connFD,char *str){
      ssize_t readBytes, writeBytes;            // Number of bytes written to / read from the socket
-    char readBuffer[1000], writeBuffer[1000]; // Buffer for reading from / writing to the client
+    char readBuffer[1000], writeBuffer[10000]; // Buffer for reading from / writing to the client
     char tempBuffer[1000];
     struct Loanapply loan;
     
@@ -1431,13 +1438,13 @@ bool printLoanListofUser(int connFD,char *str){
         perror("Error while obtaining read lock on the Customer file!");
         return false;
     }
-    char printstr[10000];
+    char printstr[50000];
     struct  Loanapply loanapps;
     offset = lseek(customerFileDescriptor, 0, SEEK_END); // Get the total size of the file
 
     lseek(customerFileDescriptor, 0, SEEK_SET); // Reset file pointer to the start of the file
     bzero(writeBuffer, sizeof(writeBuffer));
-
+ strcat(printstr, "Loan Details as Follows : \n");
     for (off_t i = 0; i < offset; i += sizeof(struct Loanapply)) {
         
         ssize_t readBytes = read(customerFileDescriptor, &loanapps, sizeof(struct Loanapply));
@@ -1448,9 +1455,12 @@ bool printLoanListofUser(int connFD,char *str){
             // write(STDOUT_FILENO,str,strlen(str));
 
             if(strcmp(loanapps.custLogID,str)==0){
-            sprintf(writeBuffer, "loan Details- \n\tAccount No : %d\n\tCustomer Name : %s\n\tCustomer ID : %s\n\tRequested Amount: %ld\n\tEmployee ID (handling by) : %d\n\tEmployee name : %s\n\tStatus : %s\n\tApproved by EMP ID : %d\n\tProcessed Time : %s\n\tApplied Time : %s\n\n", loanapps.accountNumber,loanapps.custName,loanapps.custLogID,loanapps.newBalance,loanapps.handleByEmpID,loanapps.nameEmployee,(loanapps.status==0?"Applied":loanapps.status==1?"Assigned":loanapps.status==2?"Approved":"Declined"),loanapps.approvedByEMP,loanapps.processedTime,loanapps.appliedTime);
+
+                bzero(writeBuffer,sizeof(writeBuffer));
+            sprintf(writeBuffer, "Loan ID : %d\n\tAccount No : %d\n\tCustomer Name : %s\n\tCustomer ID : %s\n\tRequested Amount: %ld\n\tEmployee ID (handling by) : %d\n\tEmployee name : %s\n\tStatus : %s\n\tApproved by EMP ID : %d\n\tProcessed Time : %s\n\tApplied Time : %s \n",loanapps.loanid, loanapps.accountNumber,loanapps.custName,loanapps.custLogID,loanapps.newBalance,loanapps.handleByEmpID,loanapps.nameEmployee,(loanapps.status==0?"Applied":loanapps.status==1?"Assigned":loanapps.status==2?"Approved":loanapps.status==3?"Declined":"Processed"),loanapps.approvedByEMP,loanapps.processedTime,loanapps.appliedTime);
         //    *printstr+=writeBuffer;
-            strcat(printstr, writeBuffer);}
+            strcat(printstr, writeBuffer);
+            }
            
             } else if (readBytes == 0) {
                 break;
@@ -1470,7 +1480,7 @@ bool printLoanListofUser(int connFD,char *str){
     }
     bzero(writeBuffer, sizeof(writeBuffer));
     bzero(printstr,sizeof(printstr));
-
+    
     // readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
 
 
@@ -1564,7 +1574,7 @@ bool view_transections(int connFD,char *str){
             
         if(strcmp(transaction.loginID,str)==0){
 
-            sprintf(writeBuffer, "Transection : \n\tTransection ID : %d\n\tAccount No : %d\n\tCustomer ID : %s\n\tTransection Type : %s\n\tOld Balance : %ld\n\tNew Balance L %ld\n\tTime : %s\n",transaction.transactionID,transaction.accountNumber,transaction.loginID,(transaction.operation==TRANSACTION_TYPE_WITHDRAW?"Withdraw":transaction.operation==TRANSACTION_TYPE_DEPOSIT?"Deposit":"Transfer"),transaction.oldBalance,transaction.newBalance,transaction.transactionTime);
+            sprintf(writeBuffer, "Transection : \n\tTransection ID : %d\n\tAccount No : %d\n\tCustomer ID : %s\n\tTransection Type : %s\n\tOld Balance : %ld\n\tNew Balance L %ld\n\tTime : %s\n",transaction.transactionID,transaction.accountNumber,transaction.loginID,(transaction.operation==TRANSACTION_TYPE_WITHDRAW?"Withdraw":transaction.operation==TRANSACTION_TYPE_DEPOSIT?"Deposit":transaction.operation==TRANSACTION_TYPE_TRANSFER ?"Transfer":"Loan Credited"),transaction.oldBalance,transaction.newBalance,transaction.transactionTime);
             strcat(printstr, writeBuffer);
         }
             }else  if (readBytes == 0) {
