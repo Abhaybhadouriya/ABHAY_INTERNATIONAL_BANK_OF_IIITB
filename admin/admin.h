@@ -15,13 +15,10 @@
 
 bool admin_operation_handler(int connFD);
 bool add_account(int connFD);
-// bool view_employee_account(int connFD,int type,int range,char *str);
 int add_customer(int connFD);
 int add_employee(int connFD);
 bool updateAdminPassword(int connFD) ;
 #define FILE_PATH "./admin/admin_cred.h"
-// bool logout(int connFD)
-// bool login_handler(bool isAdmin, int connFD, struct Account *ptrToCustomer);
 
 // =====================================================
 
@@ -95,6 +92,7 @@ bool admin_operation_handler(int connFD)
             default:
                 write(connFD,"Invalid Input",strlen("Invalid Input"));
                 // return true;
+                break;
             }
         }
     }

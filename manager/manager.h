@@ -21,7 +21,6 @@
 // void assingLoanHandler(int connFD,struct Loanapply);
 bool manager_operation_handler(int connFD);
 bool add_account(int connFD);
-// bool view_employee_account(int connFD,int type,int range,char *str);
 int add_customer(int connFD);
 int add_employee(int connFD);
 bool view_feedback(int connFD);
